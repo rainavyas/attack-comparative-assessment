@@ -38,7 +38,12 @@ class GCGAttacker(Attacker):
         # randomly sample an adv token to substitute with one of the top-k inds; repeat
         for _ in range(self.attack_args.inner_steps):
             tgt_tkn = random.randint(0, self.num_adv_tkns-1)
-            substitute = #TODO
+            substitute = random.randint(0, self.attack_args.topk - 1)
+            substitute_id = top_indices[tgt_tkn][substitute]
+            adv_ids[tgt_tkn] = substitute_id
+        
+        adv_phrase = ' '.join(self.tokenizer.convert_ids_to_tokens(adv_ids))
+        return adv_phrase
 
         
 
