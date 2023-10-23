@@ -3,16 +3,16 @@ import json
 import os
 from tqdm import tqdm
 
-from src.models.templates import load_prompt_template
+from src.data.templates import load_prompt_template
 
 class Attacker(ABC):
     '''
     Base class for adversarial attacks
     '''
-    def __init__(self, attack_args, model, tokenizer, device):
+    def __init__(self, attack_args, model, device):
         self.attack_args = attack_args
         self.model = model
-        self.tokenizer = tokenizer
+        self.tokenizer = self.model.tokenizer
         self.device = device
         self.prompt_template = load_prompt_template()
         self.num_adv_tkns = len(self.attack_args.init_phrase.split(' '))

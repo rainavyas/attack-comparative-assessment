@@ -1,14 +1,19 @@
 import torch
 from .attack import Attacker
 import random
-
+from types import SimpleNamespace
 
 
 class GCGAttacker(Attacker):
     def __init__(self, attack_args, model, tokenizer, device):
         Attacker.__init__(self, attack_args, model, tokenizer, device)
-        self.special_tkns_txt = self.attack_args.adv_special_tkn * self.num_adv_tkns
-    
+        
+        # tokenzier stuff
+        self.tokenizer.add_tokens([f"<attack_tok>"])
+        self.adv_special_tkn_id = len(self.tokenizer)
+        
+        self.special_tkns_txt = ' '.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
+        
     def attack_batch(self, batch, adv_phrase):
         adv_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(adv_phrase))
     
@@ -16,19 +21,18 @@ class GCGAttacker(Attacker):
         adv_grads_batch = []
         for sample in batch:
             context = sample['context']
-            summaries = random.sample(sample['responses'][:self.attack_args.num_systems_seen])
-            summA = summaries[0]
-            summB = summaries[1]
+            summary_A, summary_B = random.sample(sample['responses'][:self.attack_args.num_systems_seen], 2)
+            
+            attacked_summary_A = summary_A + f' {self.special_tkns_txt}'
+            attacked_summary_B = summary_B + f' {self.special_tkns_txt}'
+            
+            attack_A_ids = self.prep_input(context, attacked_summary_A, summary_B)
+            attack_B_ids = self.prep_input(context, summary_A, attacked_summary_B)
 
-            attackA_txt = self.prompt_template(context, f'{summA} {self.special_tkns_txt}', summB)
-            attackB_txt = self.prompt_template(context, summB, f'{summB} {self.special_tkns_txt}')
+            adv_grads_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
+            adv_grads_B = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([1]))
 
-            attackA_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(attackA_txt))
-            attackB_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(attackB_txt))
-
-            with torch.no_grad():
-                adv_grads = self.token_gradients(attackA_ids, adv_ids) - self.token_gradients(attackB_ids, adv_ids)
-            adv_grads_batch.append(adv_grads)
+            adv_grads_batch.append(adv_grads_A + adv_grads_B)
 
         with torch.no_grad():
             adv_grads_batch = torch.stack(adv_grads_batch, dim=0)
@@ -44,13 +48,61 @@ class GCGAttacker(Attacker):
         
         adv_phrase = ' '.join(self.tokenizer.convert_ids_to_tokens(adv_ids))
         return adv_phrase
+    
+    def prep_input(self, context, summary_A, summary_B):
+        input_text = self.prompt_template.format(context=context, summary_A=summary_A, summary_B=summary_B)
+        tok_input = self.tokenizer(input_text, return_tensors='pt')
+        return input_ids = tok_input['input_ids'][0]
 
-        
-
-
-    def token_gradients(self, input_ids, attack_ids):
-        '''
+    def token_gradients(self, input_ids, adv_ids, target):
+        """
         input_ids must include the self.attack_args.adv_special_tkn where attack_ids are to be placed
         Returns the tensor of gradients for the attack_ids one-hot-encoded vectors
-        '''
-        #TODO adian
+
+        https://github.com/llm-attacks/llm-attacks/blob/main/llm_attacks/gcg/gcg_attack.py
+        """
+        assert len(input_ids.shape) == 1, "input must be a 1D torch tensor"
+
+        # fill input with fill_ids
+        input_ids = input_ids.clone()
+        attack_toks = (input_ids == self.adv_special_tkn_id)
+        input_ids[attack_toks] = adv_ids
+
+        # find slice of start and end position of 
+        start, stop = np.where(attack_toks)[0][[0, -1]]
+        input_slice = slice(start, stop+1)
+
+        # embed input_ids into one hot encoded inputs
+        embed_weights = self.model.get_embedding_matrix()
+        one_hot = torch.zeros(
+            input_ids[input_slice].shape[0],
+            embed_weights.shape[0],
+            device=model.device,
+            dtype=embed_weights.dtype
+        )
+        
+        one_hot.scatter_(
+            1, 
+            input_ids[input_slice].unsqueeze(1),
+            torch.ones(one_hot.shape[0], 1, device=model.device, dtype=embed_weights.dtype)
+        )
+        
+        one_hot.requires_grad_()
+        input_embeds = (one_hot @ embed_weights).unsqueeze(0)
+
+        # now stitch it together with the rest of the embeddings
+        embeds = self.model.get_embeddings(input_ids.unsqueeze(0)).detach()
+        full_embeds = torch.cat(
+            [
+                embeds[:,:input_slice.start,:], 
+                input_embeds, 
+                embeds[:,input_slice.stop:,:]
+            ], 
+            dim=1)
+
+        output = self.model.forward(inputs_embeds=full_embeds)
+        loss = nn.CrossEntropyLoss()(output.logits, targets)
+        loss.backward()
+
+        return one_hot.grad.clone()
+
