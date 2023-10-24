@@ -46,3 +46,14 @@ if __name__ == "__main__":
     adv_data = attacker.universal_attack(train_data, cache_path=base_path)
 
     # evaluate on test data - separately for seen and unseen summary generation systems
+    # seen vs seen
+    # seen vs unseen
+    # unseen vs unseen
+    # maybe matrix of 16 vs 16
+
+    # Have 3 matrices
+    # 1) No attack (fraction A is better)
+    # 2) Attack A (fraction A is better)
+    # 3) Attack B (fraction A is better)
+ 
+
