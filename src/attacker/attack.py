@@ -30,11 +30,9 @@ class Attacker(ABC):
             self.adv_phrase = adv_phrase
             return adv_phrase
 
-        batches = batch_data(data, bs=self.attack_args.bs)
         adv_phrase = self.attack_args.init_phrase
-        for step in self.attack_args.outer_steps:
-            for batch in tqdm(batches):
-                adv_phrase = self.attack_batch(batch, adv_phrase)
+        for _ in tqdm(self.attack_args.outer_steps):
+            adv_phrase = self.attack_batch(data, adv_phrase)
 
         # save
         with open(fpath, 'w') as f:
