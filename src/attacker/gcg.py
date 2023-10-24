@@ -15,16 +15,17 @@ class GCGAttacker(Attacker):
         self.tokenizer.add_tokens([f"<attack_tok>"])
         self.adv_special_tkn_id = len(self.tokenizer)
         
-        self.special_tkns_txt = ' '.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
+        self.special_tkns_txt = ''.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
         
     def attack_batch(self, batch, adv_phrase):
-        adv_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(adv_phrase))
-    
+        #adv_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(adv_phrase))
+        adv_ids = self.tokenizer(adv_phrase, add_special_tokens=False, return_tensors='pt')['input_ids']
+        print(adv_ids)
         # get gradient per adv token one-hot-vector (over the batch)
         adv_grads_batch = []
         for sample in batch:
-            context = sample['context']
-            summary_A, summary_B = random.sample(sample['responses'][:self.attack_args.num_systems_seen], 2)
+            context = sample.context
+            summary_A, summary_B = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
             
             attacked_summary_A = summary_A + f' {self.special_tkns_txt}'
             attacked_summary_B = summary_B + f' {self.special_tkns_txt}'

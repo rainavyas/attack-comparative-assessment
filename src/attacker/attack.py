@@ -31,7 +31,7 @@ class Attacker(ABC):
             return adv_phrase
 
         adv_phrase = self.attack_args.init_phrase
-        for _ in tqdm(self.attack_args.outer_steps):
+        for _ in tqdm(range(self.attack_args.outer_steps)):
             adv_phrase = self.attack_batch(data, adv_phrase)
 
         # save
