@@ -5,6 +5,7 @@ def core_args():
     commandLineParser.add_argument('--model_name', type=str, default='T5', help='comparative assessment system')
     commandLineParser.add_argument('--gpu_id', type=int, default=0, help='select specific gpu')
     commandLineParser.add_argument('--data_name', type=str, default='summeval', help='dataset for exps')
+    commandLineParser.add_argument('--train_frac', type=float, default=0.1, help='fraction of samples for learning attack')
     commandLineParser.add_argument('--seed', type=int, default=1, help='select seed')
     commandLineParser.add_argument('--force_cpu', action='store_true', help='force cpu use')
     return commandLineParser.parse_known_args()

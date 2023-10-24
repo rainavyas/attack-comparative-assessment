@@ -1,12 +1,15 @@
 import torch
-from .attack import Attacker
+import numpy as np
+import torch.nn as nn
 import random
-from types import SimpleNamespace
+
+from .attack import Attacker
+
 
 
 class GCGAttacker(Attacker):
-    def __init__(self, attack_args, model, device):
-        Attacker.__init__(self, attack_args, model, device)
+    def __init__(self, attack_args, model):
+        Attacker.__init__(self, attack_args, model)
         
         # tokenzier stuff
         self.tokenizer.add_tokens([f"<attack_tok>"])
@@ -30,7 +33,7 @@ class GCGAttacker(Attacker):
             attack_B_ids = self.prep_input(context, summary_A, attacked_summary_B)
 
             adv_grads_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
-            adv_grads_B = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([1]))
+            adv_grads_B = self.token_gradients(attack_B_ids, adv_ids, torch.LongTensor([1]))
 
             adv_grads_batch.append(adv_grads_A + adv_grads_B)
 
@@ -59,6 +62,7 @@ class GCGAttacker(Attacker):
         """
         input_ids must include the self.attack_args.adv_special_tkn where attack_ids are to be placed
         Returns the tensor of gradients for the attack_ids one-hot-encoded vectors
+        Gradient is wrt to the loss as per the target label (0 for summA and 1 for summB)
 
         https://github.com/llm-attacks/llm-attacks/blob/main/llm_attacks/gcg/gcg_attack.py
         """
@@ -78,14 +82,14 @@ class GCGAttacker(Attacker):
         one_hot = torch.zeros(
             input_ids[input_slice].shape[0],
             embed_weights.shape[0],
-            device=model.device,
+            device=self.model.device,
             dtype=embed_weights.dtype
         )
         
         one_hot.scatter_(
             1, 
             input_ids[input_slice].unsqueeze(1),
-            torch.ones(one_hot.shape[0], 1, device=model.device, dtype=embed_weights.dtype)
+            torch.ones(one_hot.shape[0], 1, device=self.model.device, dtype=embed_weights.dtype)
         )
         
         one_hot.requires_grad_()
@@ -102,7 +106,7 @@ class GCGAttacker(Attacker):
             dim=1)
 
         output = self.model.forward(inputs_embeds=full_embeds)
-        loss = nn.CrossEntropyLoss()(output.logits, targets)
+        loss = nn.CrossEntropyLoss()(output.logits, target.unsqueeze(0).to(self.model.device))
         loss.backward()
 
         return one_hot.grad.clone()

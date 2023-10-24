@@ -3,13 +3,13 @@ from types import SimpleNamespace
 from typing import List
 
 
-def load_data(data_name):
-    if data_name == 'summeval':
-        train, test = load_summeval()
+def load_data(core_args):
+    if core_args.data_name == 'summeval':
+        train, test = load_summeval(train_frac=core_args.train_frac)
     
     return train, test
     
-def load_summeval()->List[SimpleNamespace]:
+def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
     output = []
     summ_eval = load_dataset('mteb/summeval')['test']
     for k, row in enumerate(summ_eval):
@@ -26,4 +26,5 @@ def load_summeval()->List[SimpleNamespace]:
             }
         )
         output.append(ex)
-    return output[:10],  output[90:]
+    train_samples = int(train_frac*len(output))
+    return output[:train_samples],  output[train_samples:]

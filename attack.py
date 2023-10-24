@@ -4,7 +4,7 @@ import torch
 
 from src.tools.tools import get_default_device, set_seeds
 from src.tools.args import core_args, attack_args
-# from src.tools.saving import base_path_creator
+from src.tools.saving import base_path_creator
 from src.data.load_data import load_data
 from src.models import load_model
 from src.attacker.gcg import GCGAttacker
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     print(attack_args)
     
     set_seeds(core_args.seed)
-    #base_path = base_path_creator(core_args)
+    base_path = base_path_creator(core_args)
 
     # Save the command run
     if not os.path.isdir('CMDs'):
@@ -36,14 +36,13 @@ if __name__ == "__main__":
     
     print(device)
     # Load the data
-    test_data, train_data = load_data(core_args.data_name)
+    train_data, test_data = load_data(core_args)
 
     # Load the model, tokenizer
     model = load_model(model_name=core_args.model_name, device=device)
 
-    # attack (and cache)
-    attacker = GCGAttacker(attack_args, model, device)
-    #adv_data = attacker.universal_attack(train_data, cache_path=base_path)
-    adv_data = attacker.universal_attack(train_data, cache_path='temp')
+    # universal attack (and cache)
+    attacker = GCGAttacker(attack_args, model)
+    adv_data = attacker.universal_attack(train_data, cache_path=base_path)
 
     # evaluate on test data - separately for seen and unseen summary generation systems

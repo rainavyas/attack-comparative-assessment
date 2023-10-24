@@ -9,11 +9,10 @@ class Attacker(ABC):
     '''
     Base class for adversarial attacks
     '''
-    def __init__(self, attack_args, model, device):
+    def __init__(self, attack_args, model):
         self.attack_args = attack_args
         self.model = model
         self.tokenizer = self.model.tokenizer
-        self.device = device
         self.prompt_template = load_prompt_template()
         self.num_adv_tkns = len(self.attack_args.init_phrase.split(' '))
     
@@ -45,7 +44,7 @@ class Attacker(ABC):
         return adv_phrase
 
     @staticmethod
-    def evaluate_attack(adv_data, test_prefixes=[]):
+    def evaluate_uni_attack(data, adv_phrase):
         '''
             List: [dict]
                 Keys: 'prompt', 'prediction', 'adv_target', 'adv_prompt', 'adv_predicton'
