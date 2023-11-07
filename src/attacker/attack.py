@@ -19,7 +19,6 @@ class Attacker(ABC):
         self.init_phrase = ';' * self.num_adv_tkns
     
     def universal_attack(self, data, cache_path=None):
-            
         if not os.path.isdir(f'{cache_path}/{self.attack_args.attack_method}'):
             os.mkdir(f'{cache_path}/{self.attack_args.attack_method}')
         dir_path = f'{cache_path}/{self.attack_args.attack_method}'

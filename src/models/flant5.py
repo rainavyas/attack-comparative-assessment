@@ -44,7 +44,7 @@ class ComparativeFlanT5:
             # set input to start of sentence token
             decoder_input_ids = self.model.config.decoder_start_token_id * torch.ones(bsz, 1, dtype=torch.long)
         
-        return decoder_input_ids
+        return decoder_input_ids.to(self.device)
     
     def setup_label_words(self):
         label_words = [' A', ' B']

@@ -5,8 +5,6 @@ import random
 
 from .attack import Attacker
 
-
-
 class GCGAttacker(Attacker):
     def __init__(self, attack_args, model):
         Attacker.__init__(self, attack_args, model)
@@ -21,8 +19,10 @@ class GCGAttacker(Attacker):
         '''
             Update universal adversarial phrase on batch of samples
         '''
-        adv_ids = self.tokenizer(adv_phrase, add_special_tokens=False, return_tensors='pt')['input_ids']
-        adv_ids = adv_ids.squeeze()[1:].to(self.model.device)
+        adv_ids = self.tokenizer(adv_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze().to(self.model.device)
+        if len(adv_ids) == self.num_adv_tkns + 1:
+            adv_ids = adv_ids[1:]
+
         # get gradient per adv token one-hot-vector (over the batch)
         adv_grads_batch = []
         for sample in batch:
@@ -38,14 +38,13 @@ class GCGAttacker(Attacker):
             adv_grads_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
             adv_grads_B = self.token_gradients(attack_B_ids, adv_ids, torch.LongTensor([1]))
 
-            import pdb; pdb.set_trace()
             adv_grads_batch.append(adv_grads_A + adv_grads_B)
 
         with torch.no_grad():
             adv_grads_batch = torch.stack(adv_grads_batch, dim=0)
-            adv_grads = torch.mean(adv_grads_batch) # [N x V] N:num adv tokens; V: vocab size
-            top_indices = torch.topk(adv_grads, self.attack_args.topk, dim=1)
-        
+            adv_grads = torch.mean(adv_grads_batch, dim=0) # [N x V] N:num adv tokens; V: vocab size
+            top_values, top_indices = torch.topk(adv_grads, self.attack_args.topk, dim=1)
+
         # randomly sample an adv token to substitute with one of the top-k inds; repeat
         for _ in range(self.attack_args.inner_steps):
             tgt_tkn = random.randint(0, self.num_adv_tkns-1)
@@ -53,8 +52,9 @@ class GCGAttacker(Attacker):
             substitute_id = top_indices[tgt_tkn][substitute]
             adv_ids[tgt_tkn] = substitute_id
         
-        adv_phrase = ' '.join(self.tokenizer.convert_ids_to_tokens(adv_ids))
+        adv_phrase = self.tokenizer.decode(adv_ids)
 
+        print(adv_phrase)
         return adv_phrase
     
     def prep_input(self, context, summary_A, summary_B):
@@ -103,6 +103,7 @@ class GCGAttacker(Attacker):
 
         # now stitch it together with the rest of the embeddings
         embeds = self.model.get_embeddings(input_ids.unsqueeze(0)).detach()
+
         full_embeds = torch.cat(
             [
                 embeds[:,:input_slice.start,:], 
@@ -111,9 +112,8 @@ class GCGAttacker(Attacker):
             ], 
             dim=1)
 
-        import pdb; pdb.set_trace()
         output = self.model.forward(inputs_embeds=full_embeds)
-        loss = nn.CrossEntropyLoss()(output.logits, target.unsqueeze(0).to(self.model.device))
+        loss = nn.CrossEntropyLoss()(output.logits, target.to(self.model.device))
         loss.backward()
 
         return one_hot.grad.clone()
