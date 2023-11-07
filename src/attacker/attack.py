@@ -14,7 +14,9 @@ class Attacker(ABC):
         self.model = model
         self.tokenizer = self.model.tokenizer
         self.prompt_template = load_prompt_template()
-        self.num_adv_tkns = len(self.attack_args.init_phrase.split(' '))
+
+        self.num_adv_tkns = attack_args.num_adv_tkns
+        self.init_phrase = ';' * self.num_adv_tkns
     
     def universal_attack(self, data, cache_path=None):
             
@@ -30,7 +32,7 @@ class Attacker(ABC):
             self.adv_phrase = adv_phrase
             return adv_phrase
 
-        adv_phrase = self.attack_args.init_phrase
+        adv_phrase = self.init_phrase
         for _ in tqdm(range(self.attack_args.outer_steps)):
             adv_phrase = self.attack_batch(data, adv_phrase)
 

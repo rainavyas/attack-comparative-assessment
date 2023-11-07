@@ -13,20 +13,22 @@ class GCGAttacker(Attacker):
         
         # tokenzier stuff
         self.tokenizer.add_tokens([f"<attack_tok>"])
-        self.adv_special_tkn_id = len(self.tokenizer)
+        self.adv_special_tkn_id = len(self.tokenizer) - 1
         
         self.special_tkns_txt = ''.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
         
     def attack_batch(self, batch, adv_phrase):
-        #adv_ids = self.tokenizer.convert_tokens_to_ids(self.tokenizer.tokenize(adv_phrase))
+        '''
+            Update universal adversarial phrase on batch of samples
+        '''
         adv_ids = self.tokenizer(adv_phrase, add_special_tokens=False, return_tensors='pt')['input_ids']
-        print(adv_ids)
+        adv_ids = adv_ids.squeeze()[1:].to(self.model.device)
         # get gradient per adv token one-hot-vector (over the batch)
         adv_grads_batch = []
         for sample in batch:
             context = sample.context
             summary_A, summary_B = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
-            
+             
             attacked_summary_A = summary_A + f' {self.special_tkns_txt}'
             attacked_summary_B = summary_B + f' {self.special_tkns_txt}'
             
@@ -36,6 +38,7 @@ class GCGAttacker(Attacker):
             adv_grads_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
             adv_grads_B = self.token_gradients(attack_B_ids, adv_ids, torch.LongTensor([1]))
 
+            import pdb; pdb.set_trace()
             adv_grads_batch.append(adv_grads_A + adv_grads_B)
 
         with torch.no_grad():
@@ -51,11 +54,12 @@ class GCGAttacker(Attacker):
             adv_ids[tgt_tkn] = substitute_id
         
         adv_phrase = ' '.join(self.tokenizer.convert_ids_to_tokens(adv_ids))
+
         return adv_phrase
     
     def prep_input(self, context, summary_A, summary_B):
         input_text = self.prompt_template.format(context=context, summary_A=summary_A, summary_B=summary_B)
-        tok_input = self.tokenizer(input_text, return_tensors='pt')
+        tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids
 
@@ -75,7 +79,7 @@ class GCGAttacker(Attacker):
         input_ids[attack_toks] = adv_ids
 
         # find slice of start and end position of 
-        start, stop = np.where(attack_toks)[0][[0, -1]]
+        start, stop = np.where(attack_toks.cpu())[0][[0, -1]]
         input_slice = slice(start, stop+1)
 
         # embed input_ids into one hot encoded inputs
@@ -87,6 +91,7 @@ class GCGAttacker(Attacker):
             dtype=embed_weights.dtype
         )
         
+        input_ids = input_ids.to(self.model.device)
         one_hot.scatter_(
             1, 
             input_ids[input_slice].unsqueeze(1),
@@ -106,6 +111,7 @@ class GCGAttacker(Attacker):
             ], 
             dim=1)
 
+        import pdb; pdb.set_trace()
         output = self.model.forward(inputs_embeds=full_embeds)
         loss = nn.CrossEntropyLoss()(output.logits, target.unsqueeze(0).to(self.model.device))
         loss.backward()
