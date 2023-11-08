@@ -43,17 +43,26 @@ if __name__ == "__main__":
 
     # universal attack (and cache)
     attacker = GCGAttacker(attack_args, model)
-    adv_data = attacker.universal_attack(train_data, cache_path=base_path)
+    adv_phrase = attacker.universal_attack(train_data, cache_path=base_path)
 
     # evaluate on test data - separately for seen and unseen summary generation systems
-    # seen vs seen
-    # seen vs unseen
-    # unseen vs unseen
-    # maybe matrix of 16 vs 16
 
-    # Have 3 matrices
     # 1) No attack (fraction A is better)
+    result = attacker.evaluate_uni_attack(test_data)
+    print('No attack (fraction A is better)')
+    print(result)
+    print()
+
     # 2) Attack A (fraction A is better)
+    result = attacker.evaluate_uni_attack(test_data, adv_phrase, attack_type='A')
+    print('Attack A (fraction A is better)')
+    print(result)
+    print()
+
+
     # 3) Attack B (fraction A is better)
- 
+    result = attacker.evaluate_uni_attack(test_data, adv_phrase, attack_type='B')
+    print('Attack B (fraction A is better)')
+    print(result)
+    print()
 
