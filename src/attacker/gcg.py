@@ -1,4 +1,6 @@
 import torch
+import torch.nn.functional as F
+
 import numpy as np
 import torch.nn as nn
 import random
@@ -25,6 +27,7 @@ class GCGAttacker(Attacker):
 
         # get gradient per adv token one-hot-vector (over the batch)
         adv_grads_batch = []
+        logging = []
         for sample in batch:
             context = sample.context
             summary_A, summary_B = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
@@ -35,10 +38,20 @@ class GCGAttacker(Attacker):
             attack_A_ids = self.prep_input(context, attacked_summary_A, summary_B)
             attack_B_ids = self.prep_input(context, summary_A, attacked_summary_B)
 
-            adv_grads_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
-            adv_grads_B = self.token_gradients(attack_B_ids, adv_ids, torch.LongTensor([1]))
+            adv_grads_A, output_A = self.token_gradients(attack_A_ids, adv_ids, torch.LongTensor([0]))
+            adv_grads_B, output_B = self.token_gradients(attack_B_ids, adv_ids, torch.LongTensor([1]))
 
             adv_grads_batch.append(adv_grads_A + adv_grads_B)
+            
+            #for logging
+            prob_A = F.softmax(output_A.logits)
+            prob_B = F.softmax(output_B.logits)
+
+            logging.append(prob_A[0][0].cpu().item())
+            logging.append(prob_B[0][1].cpu().item())
+
+        print(np.mean(logging))
+        print(np.mean([i > 0.5 for i in logging]))
 
         with torch.no_grad():
             adv_grads_batch = torch.stack(adv_grads_batch, dim=0)
@@ -113,8 +126,9 @@ class GCGAttacker(Attacker):
             dim=1)
 
         output = self.model.forward(inputs_embeds=full_embeds)
-        loss = nn.CrossEntropyLoss()(output.logits, target.to(self.model.device))
+        #loss = nn.CrossEntropyLoss()(output.logits, target.to(self.model.device))
+        loss = F.cross_entropy(output.logits, target.to(self.model.device))
         loss.backward()
 
-        return one_hot.grad.clone()
+        return one_hot.grad.clone(), output
 
