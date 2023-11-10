@@ -56,7 +56,7 @@ class GCGAttacker(Attacker):
         with torch.no_grad():
             adv_grads_batch = torch.stack(adv_grads_batch, dim=0)
             adv_grads = torch.mean(adv_grads_batch, dim=0) # [N x V] N:num adv tokens; V: vocab size
-            top_values, top_indices = torch.topk(adv_grads, self.attack_args.topk, dim=1)
+            top_values, top_indices = torch.topk(-1*adv_grads, self.attack_args.topk, dim=1)
 
         # randomly sample an adv token to substitute with one of the top-k inds; repeat
         for _ in range(self.attack_args.inner_steps):

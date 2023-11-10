@@ -21,12 +21,9 @@ class Attacker(ABC):
         self.init_phrase = ';' * self.num_adv_tkns
     
     def universal_attack(self, data, cache_path=None):
-        if not os.path.isdir(f'{cache_path}/{self.attack_args.attack_method}'):
-            os.mkdir(f'{cache_path}/{self.attack_args.attack_method}')
-        dir_path = f'{cache_path}/{self.attack_args.attack_method}'
 
         # try to load from cache
-        fpath = f'{dir_path}/universal.txt'
+        fpath = f'{cache_path}/universal.txt'
         if os.path.isfile(fpath):
             with open(fpath, 'r') as f:
                 adv_phrase = json.load(f)['adv-phrase']
