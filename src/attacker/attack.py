@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch
 import numpy as np
 import torch.nn.functional as F
+import random
 
 from src.data.templates import load_prompt_template
 
@@ -86,6 +87,42 @@ class Attacker(ABC):
                     
                     prob_i_better = 0.5*(prob1+prob2)
                     result[i][j] += prob_i_better
+
+        return result/len(data)
+
+    def sample_evaluate_uni_attack(self, data, adv_phrase='', attack_type=None):
+        '''
+            List: [dict]
+                Keys: 'prompt', 'prediction', 'adv_target', 'adv_prompt', 'adv_predicton'
+        
+            Returns the average probability attacked system i is better than system j
+            randomly samples the pair of summary systems i and j for each sample
+            only consider the seen summarization systems
+        '''
+
+        result = 0
+        
+        for sample in data:
+            context = sample.context
+            summi, summj  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
+            if attack_type == 'A':
+                summi = summi + ' ' + adv_phrase
+
+            with torch.no_grad():
+                # attacked summ in position A
+                input_ids = self.prep_input(context, summi, summj)
+                output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                logits = output.logits.squeeze().cpu()
+                prob1 = F.softmax(logits, dim=0)[0].item()
+
+                # attacked summ in position B
+                input_ids = self.prep_input(context, summj, summi)
+                output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                logits = output.logits.squeeze().cpu()
+                prob2= F.softmax(logits, dim=0)[1].item()
+                    
+                prob_i_better = 0.5*(prob1+prob2)
+                result += prob_i_better
 
         return result/len(data)
 
