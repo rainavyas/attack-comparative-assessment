@@ -9,6 +9,7 @@ def base_path_creator(core_args, create=True):
 
 def attack_base_path_creator(attack_args, path='.', create=True):
     path = next_dir(path, attack_args.attack_method, create=create)
+    path = next_dir(path, f'init-{attack_args.init_phrase}', create=create)
     path = next_dir(path, f'topk-{attack_args.topk}', create=create)
     path = next_dir(path, f'num_adv_tkns-{attack_args.num_adv_tkns}', create=create)
     path = next_dir(path, f'inner_steps-{attack_args.inner_steps}', create=create)

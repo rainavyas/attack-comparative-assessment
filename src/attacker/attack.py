@@ -4,6 +4,7 @@ import os
 from tqdm import tqdm
 import torch
 import numpy as np
+import torch.nn.functional as F
 
 from src.data.templates import load_prompt_template
 
@@ -18,7 +19,14 @@ class Attacker(ABC):
         self.prompt_template = load_prompt_template()
 
         self.num_adv_tkns = attack_args.num_adv_tkns
-        self.init_phrase = ';' * self.num_adv_tkns
+        self._load_init_phrase()
+    
+    def _load_init_phrase(self):
+        if self.attack_args.init_phrase == 'semicolon':
+            self.init_phrase = ';' * self.num_adv_tkns
+        elif self.attack_args.init_phrase == 'bland':
+            self.init_phrase = "Sterling's wife receives gifts after suing; endangered gray whales may be even fewer in number."
+            self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
     
     def universal_attack(self, data, cache_path=None):
 
@@ -46,8 +54,8 @@ class Attacker(ABC):
             List: [dict]
                 Keys: 'prompt', 'prediction', 'adv_target', 'adv_prompt', 'adv_predicton'
         
-            Returns a numpy array with cell i,j representing the fraction of samples
-            for which system i was better than system j
+            Returns a numpy array with cell i,j representing the probability
+            system i is better than system j
         '''
         print('Evaluating')
 
@@ -57,21 +65,27 @@ class Attacker(ABC):
         for sample in tqdm(data):
             context = sample.context
             for i in range(num_systems):
-                summA = sample.responses[i]
+                summi = sample.responses[i]
                 if attack_type == 'A':
-                    summA = summA + ' ' + adv_phrase
+                    summi = summi + ' ' + adv_phrase
                 for j in range(num_systems):
-                    summB = sample.responses[j]
-                    if attack_type == 'B':
-                        summB = summB + ' ' + adv_phrase
+                    summj = sample.responses[j]
 
                     with torch.no_grad():
-                        input_ids = self.prep_input(context, summA, summB)
+                        # attacked summ in position A
+                        input_ids = self.prep_input(context, summi, summj)
                         output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
                         logits = output.logits.squeeze().cpu()
+                        prob1 = F.softmax(logits, dim=0)[0].item()
 
-                    if logits[0] > logits[1]:
-                        result[i][j] += 1
+                        # attacked summ in position B
+                        input_ids = self.prep_input(context, summj, summi)
+                        output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                        logits = output.logits.squeeze().cpu()
+                        prob2= F.softmax(logits, dim=0)[1].item()
+                    
+                    prob_i_better = 0.5*(prob1+prob2)
+                    result[i][j] += prob_i_better
 
         return result/len(data)
 
