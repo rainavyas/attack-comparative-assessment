@@ -81,7 +81,7 @@ if __name__ == "__main__":
         word_list = words.words()
 
         # temporarily reduce word_list size - later will batch over vocab
-        word_list = list(set(word_list))[:10000]
+        word_list = list(set(word_list))[:20000]
 
         attacker = GCGAttacker(attack_args, model)
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         with open(fpath_prev, 'w') as f:
             json.dump({'prev-adv-phrase': init_args.prev_phrase}, f)
         with open(fpath_scores, 'w') as f:
-            json.dump(word_2_score)
+            json.dump(word_2_score, f)
 
 
 
