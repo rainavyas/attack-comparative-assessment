@@ -13,6 +13,7 @@ import json
 from src.tools.args import core_args, attack_args, initialization_args
 from src.data.load_data import load_data
 from src.models import load_model
+from src.models.llama import LlamaBase
 from src.tools.tools import get_default_device, set_seeds
 from src.tools.saving import next_dir
 from src.attacker.gcg import GCGAttacker
@@ -27,6 +28,19 @@ if __name__ == "__main__":
 
     # set seeds
     set_seeds(core_args.seed)
+
+    # Save the command run
+    if not os.path.isdir('CMDs'):
+        os.mkdir('CMDs')
+    with open('CMDs/initialize.cmd', 'a') as f:
+        f.write(' '.join(sys.argv)+'\n')
+
+    # Get the device
+    if core_args.force_cpu:
+        device = torch.device('cpu')
+    else:
+        device = get_default_device(core_args.gpu_id)
+    print(device)
 
     if init_args.init_approach == 'bland':
         
@@ -51,22 +65,36 @@ if __name__ == "__main__":
         print()
         print(f'Summary\n{summary}')
     
+
+
+    elif init_args.init_approach == 'bland2':
+
+        '''Take average (across context) next token probability of summarisation system iteratively'''
+
+        # load data
+        data, _ = load_data(core_args)
+        contexts = [s.context for s in data]
+
+        # load summarization model
+        summ_model = LlamaBase('llama-2-7b-chat-hf',device)
+
+        bland_summ = ''
+        # get each average predicted token iteratively
+        for i in tqdm(range(attack_args.num_adv_tkns)):
+            total_prob = None
+            for j, context in enumerate(contexts):
+                prompt = f'Summarise: {context} {bland_summ}'
+                ids = summ_model.tokenizer(prompt, return_tensors='pt')['input_ids'][0].to(device)
+                out = summ_model.forward(ids.unsqueeze(dim=0))
+                import pdb; pdb.set_trace()
+
+
+
+
+    
     elif init_args.init_approach == 'greedy':
 
         '''learn the next universal adversarial token to append greedily'''
-
-        # Save the command run
-        if not os.path.isdir('CMDs'):
-            os.mkdir('CMDs')
-        with open('CMDs/initialize.cmd', 'a') as f:
-            f.write(' '.join(sys.argv)+'\n')
-
-        # Get the device
-        if core_args.force_cpu:
-            device = torch.device('cpu')
-        else:
-            device = get_default_device(core_args.gpu_id)
-        print(device)
 
         # load the train data
         data, _ = load_data(core_args)
@@ -85,6 +113,9 @@ if __name__ == "__main__":
 
         attacker = GCGAttacker(attack_args, model)
 
+        # score with no attack
+        score_no_attack = attacker.sample_evaluate_uni_attack(data, init_args.prev_phrase, attack_type='A')
+
         word_2_score = {}
         for word in tqdm(word_list):
             if init_args.prev_phrase == '':
@@ -95,7 +126,7 @@ if __name__ == "__main__":
             word_2_score[word] = score
         
         # save
-        pos = len(init_args.prev_phrase.split(' '))+1
+        pos = len(init_args.prev_phrase.split(' '))+1 if init_args.prev_phrase != '' else 1
         base_path = base_path_creator(core_args)
         path = next_dir(base_path, 'initialization')
         path = next_dir(path, 'greedy')
@@ -105,7 +136,7 @@ if __name__ == "__main__":
         fpath_scores = f'{path}/scores.txt'
 
         with open(fpath_prev, 'w') as f:
-            json.dump({'prev-adv-phrase': init_args.prev_phrase}, f)
+            json.dump({'prev-adv-phrase': init_args.prev_phrase, 'score':score_no_attack}, f)
         with open(fpath_scores, 'w') as f:
             json.dump(word_2_score, f)
 

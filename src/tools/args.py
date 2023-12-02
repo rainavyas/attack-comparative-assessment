@@ -31,7 +31,7 @@ def process_args():
 
 def initialization_args():
     commandLineParser = argparse.ArgumentParser(allow_abbrev=False)
-    commandLineParser.add_argument('--init_approach', type=str, default='bland', choices=['bland', 'greedy'], help='Adversarial attack approach')
+    commandLineParser.add_argument('--init_approach', type=str, default='bland', choices=['bland', 'bland2', 'greedy'], help='Adversarial attack approach')
     commandLineParser.add_argument('--prev_phrase', default='', type=str, help='previously learnt adv phrase for greedy approach')
 
     return commandLineParser.parse_known_args()
