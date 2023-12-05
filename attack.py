@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     # 1) No attack
     fpath = fpaths[0]
-    if os.path.isfile(fpath):
+    if os.path.isfile(fpath) and not attack_args.force_run:
         with open(fpath, 'rb') as f:
             result = np.load(f)
     else:
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     # 2) Attack i 
     fpath = fpaths[1]
-    if os.path.isfile(fpath):
+    if os.path.isfile(fpath) and not attack_args.force_run:
         with open(fpath, 'rb') as f:
             result = np.load(f)
     else:

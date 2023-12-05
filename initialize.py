@@ -6,6 +6,7 @@ import random
 import sys
 import os
 import torch
+import torch.nn as nn
 from openai import OpenAI
 from tqdm import tqdm
 import json
@@ -76,17 +77,28 @@ if __name__ == "__main__":
         contexts = [s.context for s in data]
 
         # load summarization model
-        summ_model = LlamaBase('llama-2-7b-chat-hf',device)
+        summ_model = LlamaBase('llama-2-7b-chat-hf', device)
 
         bland_summ = ''
+        sf = nn.Softmax(dim=0)
         # get each average predicted token iteratively
         for i in tqdm(range(attack_args.num_adv_tkns)):
             total_prob = None
             for j, context in enumerate(contexts):
-                prompt = f'Summarise: {context} {bland_summ}'
+                # uisng Llama-2-chat prompt template
+                prompt = f'[INST] Summarize the following text.\n{context} [/INST] {bland_summ}'
                 ids = summ_model.tokenizer(prompt, return_tensors='pt')['input_ids'][0].to(device)
-                out = summ_model.forward(ids.unsqueeze(dim=0))
-                import pdb; pdb.set_trace()
+                with torch.no_grad():
+                    next_tkn_logits = summ_model.forward(input_ids = ids.unsqueeze(dim=0))['logits'][0,-1,:].detach().cpu()
+                    probs = sf(next_tkn_logits)
+
+                    if j==0:
+                        total_prob = probs
+                    else:
+                        total_prob += probs
+            next_tkn_id = torch.argmax(total_prob, dim=0)
+            bland_summ += f' {summ_model.tokenizer.decode(next_tkn_id)}'
+            print(bland_summ)
 
 
 
@@ -119,9 +131,9 @@ if __name__ == "__main__":
         word_2_score = {}
         for word in tqdm(word_list):
             if init_args.prev_phrase == '':
-                adv_phrase = word
+                adv_phrase = word + '.'
             else:
-                adv_phrase = init_args.prev_phrase + ' ' + word
+                adv_phrase = init_args.prev_phrase + ' ' + word + '.'
             score = attacker.sample_evaluate_uni_attack(data, adv_phrase, attack_type='A')
             word_2_score[word] = score
         

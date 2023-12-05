@@ -15,12 +15,14 @@ def attack_args():
     commandLineParser = argparse.ArgumentParser(allow_abbrev=False)
     commandLineParser.add_argument('--attack_method', type=str, default='gcg-uni', choices=['gcg-uni'], help='Adversarial attack approach')
     commandLineParser.add_argument('--topk', type=int, default=256, help='topk candidates for gcg')
-    commandLineParser.add_argument('--num_adv_tkns', type=int, default=20, help='number of concatenated tokens in uni adv phras')
+    commandLineParser.add_argument('--num_adv_tkns', type=int, default=20, help='number of concatenated tokens in uni adv phrase')
     commandLineParser.add_argument('--inner_steps', type=int, default=5, help='inner iter steps per batch for uni-gcg alg')
     commandLineParser.add_argument('--outer_steps', type=int, default=100, help='outer iter steps for uni-gcg alg')
     commandLineParser.add_argument('--num_systems_seen', type=int, default=8, help='number of summarization systems adversary has access to')
-    commandLineParser.add_argument('--init_phrase', default='semicolon', type=str, choices=['semicolon', 'bland', 'greedy'], help='select optimizer initialization phrase for gcg')
+    commandLineParser.add_argument('--init_phrase', default='semicolon', type=str, choices=['semicolon', 'bland', 'greedy', 'bland2'], help='select optimizer initialization phrase for gcg')
+    commandLineParser.add_argument('--num_init_phrase_words', type=int, default=-1, help='for some init phrase select only first k words')
     commandLineParser.add_argument('--eval_init', action='store_true', help='Evaluate attack with init phrase')
+    commandLineParser.add_argument('--force_run', action='store_true', help='Do not load from cache')
     return commandLineParser.parse_known_args()
 
 def process_args():

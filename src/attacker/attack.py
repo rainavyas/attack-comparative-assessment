@@ -28,6 +28,13 @@ class Attacker(ABC):
         elif self.attack_args.init_phrase == 'bland':
             self.init_phrase = "Sterling's wife receives gifts after suing; endangered gray whales may be even fewer in number."
             self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
+        elif self.attack_args.init_phrase == 'bland2':
+            self.init_phrase = "A young man named Michael was driving home from work when he saw a group of people gathered around."
+            self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
+        elif self.attack_args.init_phrase == 'greedy':
+            init_phrase = "resuggest concatenation"
+            self.init_phrase = ' '.join(init_phrase.split()[:self.attack_args.num_init_phrase_words]) + '.'
+            self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
     
     def universal_attack(self, data, cache_path=None):
 

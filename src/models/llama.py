@@ -8,6 +8,7 @@ MODEL_URLS = {
 
 class LlamaBase(torch.nn.Module):
     def __init__(self, model_name, device=None):
+        super().__init__()
         # load model and tokenizer
         system_url = MODEL_URLS[model_name]
         self.tokenizer = AutoTokenizer.from_pretrained(system_url)
@@ -17,3 +18,6 @@ class LlamaBase(torch.nn.Module):
         if not device:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.to(device)
+    
+    def forward(self, **kwargs):
+        return self.model.forward(**kwargs)

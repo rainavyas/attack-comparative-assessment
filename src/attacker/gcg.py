@@ -22,6 +22,10 @@ class GCGAttacker(Attacker):
             Update universal adversarial phrase on batch of samples
         '''
         adv_ids = self.tokenizer(adv_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze().to(self.model.device)
+        
+        self.num_adv_tkns = len(adv_ids) # temp to make it work when size changes
+        self.special_tkns_txt = ''.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
+        
         if len(adv_ids) == self.num_adv_tkns + 1:
             adv_ids = adv_ids[1:]
 
