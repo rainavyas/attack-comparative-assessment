@@ -7,7 +7,6 @@ import sys
 import os
 import torch
 import torch.nn as nn
-from openai import OpenAI
 from tqdm import tqdm
 import json
 
@@ -17,7 +16,7 @@ from src.models import load_model
 from src.models.llama import LlamaBase
 from src.tools.tools import get_default_device, set_seeds
 from src.tools.saving import next_dir
-from src.attacker.gcg import GCGAttacker
+from src.attacker.greedy import GreedyAttacker
 from src.tools.saving import base_path_creator
 
 if __name__ == "__main__":
@@ -44,6 +43,8 @@ if __name__ == "__main__":
     print(device)
 
     if init_args.init_approach == 'bland':
+
+        from openai import OpenAI
         
         data, _ = load_data(core_args)
 
@@ -115,42 +116,32 @@ if __name__ == "__main__":
         model = load_model(model_name=core_args.model_name, device=device)
 
         # load the vocab
-        import nltk
-        nltk.download('words')
-        from nltk.corpus import words
-        word_list = words.words()
+        fpath = 'experiments/words.txt'
+        if os.path.isfile(fpath):
+            with open(fpath, 'r') as f:
+                word_list = json.load(f)
+        else:
+            import nltk
+            nltk.download('words')
+            from nltk.corpus import words
+            word_list = words.words()
+            word_list = list(set(word_list))[:20000]
 
-        # temporarily reduce word_list size - later will batch over vocab
-        word_list = list(set(word_list))[:20000]
-
-        attacker = GCGAttacker(attack_args, model)
-
-        # score with no attack
-        score_no_attack = attacker.sample_evaluate_uni_attack(data, init_args.prev_phrase, attack_type='A')
-
-        word_2_score = {}
-        for word in tqdm(word_list):
-            if init_args.prev_phrase == '':
-                adv_phrase = word + '.'
-            else:
-                adv_phrase = init_args.prev_phrase + ' ' + word + '.'
-            score = attacker.sample_evaluate_uni_attack(data, adv_phrase, attack_type='A')
-            word_2_score[word] = score
+            with open(fpath, 'w') as f:
+                json.dump(word_list, f)
         
-        # save
-        pos = len(init_args.prev_phrase.split(' '))+1 if init_args.prev_phrase != '' else 1
-        base_path = base_path_creator(core_args)
-        path = next_dir(base_path, 'initialization')
-        path = next_dir(path, 'greedy')
-        path = next_dir(path, f'pos{pos}')
+        # select vocab segment if array job
+        if init_args.array_job_id != -1:
+            start = init_args.array_job_id*init_args.array_word_size
+            end = start+init_args.array_word_size
+            word_list = word_list[start:end]
 
-        fpath_prev = f'{path}/prev.txt'
-        fpath_scores = f'{path}/scores.txt'
+        attacker = GreedyAttacker(attack_args, model, word_list)
+       # save scores for each word as the next word in the uni adv phrase
+        prev, word_2_score = attacker.next_word_score(data, init_args.prev_phrase, base_path_creator(core_args), array_job_id=init_args.array_job_id)
+        
 
-        with open(fpath_prev, 'w') as f:
-            json.dump({'prev-adv-phrase': init_args.prev_phrase, 'score':score_no_attack}, f)
-        with open(fpath_scores, 'w') as f:
-            json.dump(word_2_score, f)
+
 
 
 

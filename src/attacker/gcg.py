@@ -73,12 +73,6 @@ class GCGAttacker(Attacker):
 
         print(adv_phrase)
         return adv_phrase
-    
-    def prep_input(self, context, summary_A, summary_B):
-        input_text = self.prompt_template.format(context=context, summary_A=summary_A, summary_B=summary_B)
-        tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
-        input_ids = tok_input['input_ids'][0]
-        return input_ids
 
     def token_gradients(self, input_ids, adv_ids, target):
         """

@@ -35,7 +35,8 @@ def initialization_args():
     commandLineParser = argparse.ArgumentParser(allow_abbrev=False)
     commandLineParser.add_argument('--init_approach', type=str, default='bland', choices=['bland', 'bland2', 'greedy'], help='Adversarial attack approach')
     commandLineParser.add_argument('--prev_phrase', default='', type=str, help='previously learnt adv phrase for greedy approach')
-
+    commandLineParser.add_argument('--array_job_id', type=int, default=-1, help='-1 means not to run as an array job')
+    commandLineParser.add_argument('--array_word_size', type=int, default=400, help='number of words to test for each array job in greedy attack')
     return commandLineParser.parse_known_args()
 
 

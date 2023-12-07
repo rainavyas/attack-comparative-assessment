@@ -1,3 +1,7 @@
+'''
+    Designed for gcg attack
+'''
+
 import sys
 import os
 import torch
