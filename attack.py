@@ -62,6 +62,7 @@ if __name__ == "__main__":
     if attack_args.eval_init:
         adv_phrase = attacker.init_phrase
     else:
+        # currently for gcg attack only
         adv_phrase = attacker.universal_attack(train_data, cache_path=attack_base_path)
 
     # evaluate on test data - separately for seen and unseen summary generation systems

@@ -32,7 +32,7 @@ class Attacker(ABC):
             self.init_phrase = "A young man named Michael was driving home from work when he saw a group of people gathered around."
             self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
         elif self.attack_args.init_phrase == 'greedy':
-            init_phrase = "resuggest concatenation relation"
+            init_phrase = "resuggest concatenation relation ending"
             self.init_phrase = ' '.join(init_phrase.split()[:self.attack_args.num_init_phrase_words]) + '.'
             self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
     
