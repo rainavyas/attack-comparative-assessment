@@ -1,5 +1,5 @@
 '''
-    Designed for gcg attack
+    Evaluate attack
 '''
 
 import sys
@@ -9,17 +9,15 @@ import numpy as np
 
 from src.tools.tools import get_default_device, set_seeds
 from src.tools.args import core_args, attack_args
-from src.tools.saving import base_path_creator, attack_base_path_creator
+from src.tools.saving import base_path_creator, attack_base_path_creator_eval
 from src.data.load_data import load_data
 from src.models import load_model
-from src.attacker.gcg import GCGAttacker
+from src.attacker.selector import select_eval_attacker
 
-def get_fpaths(core_args, attack_args, attack_base_path):
+def get_fpaths(core_args, attack_base_path):
     fpaths = ['eval_no_attack', 'eval_attack']
     if core_args.eval_train:
         fpaths = [f'{c}_trn' for c in fpaths]
-    if attack_args.eval_init:
-        fpaths = [f'{c}_init' for c in fpaths]
     fpaths = [f'{attack_base_path}/{p}.npy' for p in fpaths]
     return fpaths
 
@@ -34,7 +32,7 @@ if __name__ == "__main__":
     
     set_seeds(core_args.seed)
     base_path = base_path_creator(core_args)
-    attack_base_path = attack_base_path_creator(attack_args, base_path)
+    attack_base_path = attack_base_path_creator_eval(attack_args, base_path)
 
     # Save the command run
     if not os.path.isdir('CMDs'):
@@ -57,16 +55,11 @@ if __name__ == "__main__":
     # Load the model, tokenizer
     model = load_model(model_name=core_args.model_name, device=device)
 
-    # universal attack (and cache)
-    attacker = GCGAttacker(attack_args, model)
-    if attack_args.eval_init:
-        adv_phrase = attacker.init_phrase
-    else:
-        # currently for gcg attack only
-        adv_phrase = attacker.universal_attack(train_data, cache_path=attack_base_path)
+    # load attacker for evaluation
+    attacker = select_eval_attacker(attack_args, core_args, model)
 
-    # evaluate on test data - separately for seen and unseen summary generation systems
-    fpaths = get_fpaths(core_args, attack_args, attack_base_path)
+    # evaluate separately for seen and unseen summary generation systems
+    fpaths = get_fpaths(core_args, attack_base_path)
 
     # 1) No attack
     fpath = fpaths[0]
@@ -87,7 +80,7 @@ if __name__ == "__main__":
         with open(fpath, 'rb') as f:
             result = np.load(f)
     else:
-        result = attacker.evaluate_uni_attack(test_data, adv_phrase, attack_type='A')
+        result = attacker.evaluate_uni_attack(test_data, attacker.adv_phrase, attack_type='A')
         with open(fpath, 'wb') as f:
             np.save(f, result)
     print('Attack i')

@@ -1,5 +1,5 @@
 '''
-    Find a sensible initialization phrase
+    Train adversarial phrase
 '''
 
 import random
@@ -10,29 +10,31 @@ import torch.nn as nn
 from tqdm import tqdm
 import json
 
-from src.tools.args import core_args, attack_args, initialization_args
+from src.tools.args import core_args, attack_args
 from src.data.load_data import load_data
 from src.models import load_model
 from src.models.llama import LlamaBase
 from src.tools.tools import get_default_device, set_seeds
 from src.tools.saving import next_dir
-from src.attacker.greedy import GreedyAttacker
-from src.tools.saving import base_path_creator
+from src.attacker.greedy import GreedyComparativeAttacker
+from src.attacker.selector import select_train_attacker
+from src.tools.saving import base_path_creator, attack_base_path_creator_train
 
 if __name__ == "__main__":
 
     # get command line arguments
     core_args, c = core_args()
     attack_args, a = attack_args()
-    init_args, p = initialization_args()
 
     # set seeds
     set_seeds(core_args.seed)
+    base_path = base_path_creator(core_args)
+    attack_base_path = attack_base_path_creator_train(attack_args, base_path)
 
     # Save the command run
     if not os.path.isdir('CMDs'):
         os.mkdir('CMDs')
-    with open('CMDs/initialize.cmd', 'a') as f:
+    with open('CMDs/train_attack.cmd', 'a') as f:
         f.write(' '.join(sys.argv)+'\n')
 
     # Get the device
@@ -42,11 +44,13 @@ if __name__ == "__main__":
         device = get_default_device(core_args.gpu_id)
     print(device)
 
-    if init_args.init_approach == 'bland':
+    # load training data
+    data, _ = load_data(core_args)
+
+
+    if attack_args.attack_method == 'bland':
 
         from openai import OpenAI
-        
-        data, _ = load_data(core_args)
 
         # create a new combined context
         combined = ''
@@ -69,7 +73,7 @@ if __name__ == "__main__":
     
 
 
-    elif init_args.init_approach == 'bland2':
+    elif attack_args.attack_method == 'bland2':
 
         '''Take average (across context) next token probability of summarisation system iteratively'''
 
@@ -105,12 +109,9 @@ if __name__ == "__main__":
 
 
     
-    elif init_args.init_approach == 'greedy':
+    elif 'greedy' in attack_args.attack_method:
 
         '''learn the next universal adversarial token to append greedily'''
-
-        # load the train data
-        data, _ = load_data(core_args)
 
         # load model
         model = load_model(model_name=core_args.model_name, device=device)
@@ -131,14 +132,25 @@ if __name__ == "__main__":
                 json.dump(word_list, f)
         
         # select vocab segment if array job
-        if init_args.array_job_id != -1:
-            start = init_args.array_job_id*init_args.array_word_size
-            end = start+init_args.array_word_size
+        if attack_args.array_job_id != -1:
+            start = attack_args.array_job_id*attack_args.array_word_size
+            end = start+attack_args.array_word_size
             word_list = word_list[start:end]
 
-        attacker = GreedyAttacker(attack_args, model, word_list)
-       # save scores for each word as the next word in the uni adv phrase
-        prev, word_2_score = attacker.next_word_score(data, init_args.prev_phrase, base_path_creator(core_args), array_job_id=init_args.array_job_id)
+        # save scores for each word as the next word in the uni adv phrase
+        attacker = select_train_attacker(attack_args, core_args, model, word_list=word_list)
+        prev, word_2_score = attacker.next_word_score(data, attack_args.prev_phrase, attack_base_path, array_job_id=attack_args.array_job_id)
+    
+
+
+    elif 'gcg' in attack_args.attack_method:
+
+        # Load the model, tokenizer
+        model = load_model(model_name=core_args.model_name, device=device)
+
+        # universal attack (and cache)
+        attacker = select_train_attacker(attack_args, core_args)
+        adv_phrase = attacker.universal_attack(data, cache_path=attack_base_path)
         
 
 

@@ -5,7 +5,7 @@ Generic functions to process saved outputs for presenting results
 import numpy as np
 
 from src.tools.args import core_args, attack_args, process_args
-from src.tools.saving import base_path_creator, attack_base_path_creator
+from src.tools.saving import base_path_creator, attack_base_path_creator_eval
 from attack import get_fpaths
 
 
@@ -21,9 +21,9 @@ if __name__ == "__main__":
     print(attack_args)
 
     base_path = base_path_creator(core_args)
-    attack_base_path = attack_base_path_creator(attack_args, base_path)
+    attack_base_path = attack_base_path_creator_eval(attack_args, base_path)
 
-    fpaths = get_fpaths(core_args, attack_args, attack_base_path)
+    fpaths = get_fpaths(core_args, attack_base_path)
 
     if process_args.grid_latex:
         # print tables in latex

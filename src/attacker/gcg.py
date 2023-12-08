@@ -1,21 +1,56 @@
 import torch
 import torch.nn.functional as F
+import os
+import json
 
 import numpy as np
 import torch.nn as nn
 import random
+from tqdm import tqdm
 
-from .attack import Attacker
+from .attack import BaseAttacker, BaseComparativeAttacker
 
-class GCGAttacker(Attacker):
+class BaseGCGAttacker(BaseAttacker):
     def __init__(self, attack_args, model):
-        Attacker.__init__(self, attack_args, model)
-        
-        # tokenzier stuff
+        BaseAttacker.__init__(attack_args, model)
+
+        self.init_phrase = self._load_phrase(self.attack_args.init_phrase)
+        self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())
+
+        # tokenzier extend (for uni gcg attack)
         self.tokenizer.add_tokens([f"<attack_tok>"])
         self.adv_special_tkn_id = len(self.tokenizer) - 1
-        
         self.special_tkns_txt = ''.join(["<attack_tok>" for _ in range(self.num_adv_tkns)])
+
+    def get_adv_phrase(self, data, cache_path=None):
+        return self.universal_attack(data, cache_path=cache_path)
+    
+    def universal_attack(self, data, cache_path=None):
+
+        # try to load from cache
+        fpath = f'{cache_path}/universal.txt'
+        if os.path.isfile(fpath):
+            with open(fpath, 'r') as f:
+                adv_phrase = json.load(f)['adv-phrase']
+            self.adv_phrase = adv_phrase
+            return adv_phrase
+
+        adv_phrase = self.init_phrase
+        for _ in tqdm(range(self.attack_args.outer_steps)):
+            adv_phrase = self.attack_batch(data, adv_phrase)
+
+        # save
+        with open(fpath, 'w') as f:
+            json.dump({'adv-phrase': adv_phrase}, f)
+        self.adv_phrase = adv_phrase
+          
+        return adv_phrase
+
+
+
+class GCGComparativeAttacker(BaseGCGAttacker, BaseComparativeAttacker):
+    def __init__(self, attack_args, model):
+        BaseGCGAttacker.__init__(self, attack_args, model)
         
     def attack_batch(self, batch, adv_phrase):
         '''
