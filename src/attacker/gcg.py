@@ -12,7 +12,7 @@ from .attack import BaseAttacker, BaseComparativeAttacker
 
 class BaseGCGAttacker(BaseAttacker):
     def __init__(self, attack_args, model):
-        BaseAttacker.__init__(attack_args, model)
+        BaseAttacker.__init__(self, attack_args, model)
 
         self.init_phrase = self._load_phrase(self.attack_args.init_phrase)
         self.num_adv_tkns = len(self.tokenizer(self.init_phrase, add_special_tokens=False, return_tensors='pt')['input_ids'].squeeze())

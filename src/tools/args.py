@@ -3,7 +3,7 @@ import argparse
 def core_args():
     commandLineParser = argparse.ArgumentParser(allow_abbrev=False)
     commandLineParser.add_argument('--model_name', type=str, default='flant5-base', help='assessment system')
-    commandLineParser.add_argument('--assessment', type=str, choices=['comparative', 'absolute'], default='flant5-base', help='assessment system')
+    commandLineParser.add_argument('--assessment', type=str, choices=['comparative', 'absolute'], default='comparative', help='assessment system')
     commandLineParser.add_argument('--gpu_id', type=int, default=0, help='select specific gpu')
     commandLineParser.add_argument('--data_name', type=str, default='summeval', help='dataset for exps')
     commandLineParser.add_argument('--train_frac', type=float, default=0.2, help='fraction of samples for learning attack')
@@ -22,14 +22,15 @@ def attack_args():
     commandLineParser.add_argument('--outer_steps', type=int, default=100, help='outer iter steps for uni-gcg alg')
     commandLineParser.add_argument('--num_systems_seen', type=int, default=8, help='number of summarization systems adversary has access to')
     commandLineParser.add_argument('--init_phrase', default='greedy-comparative-flant5base', type=str, help='select initialization phrase for gcg')
+    commandLineParser.add_argument('--prev_phrase', default='', type=str, help='previously learnt adv phrase for greedy approach')
+    commandLineParser.add_argument('--array_job_id', type=int, default=-1, help='-1 means not to run as an array job')
+    commandLineParser.add_argument('--array_word_size', type=int, default=400, help='number of words to test for each array job in greedy attack')
 
     # eval attack args
     commandLineParser.add_argument('--attack_phrase', type=str, default='greedy-comparative-flant5base', help='Specifc adversarial attack phrase to evaluate')
     commandLineParser.add_argument('--num_greedy_phrase_words', type=int, default=-1, help='for greedy phrase select only first k words')
     commandLineParser.add_argument('--force_run', action='store_true', help='Do not load from cache')
-    commandLineParser.add_argument('--prev_phrase', default='', type=str, help='previously learnt adv phrase for greedy approach')
-    commandLineParser.add_argument('--array_job_id', type=int, default=-1, help='-1 means not to run as an array job')
-    commandLineParser.add_argument('--array_word_size', type=int, default=400, help='number of words to test for each array job in greedy attack')
+    commandLineParser.add_argument('--not_none', action='store_true', help='Do not evaluate the none attack')
     return commandLineParser.parse_known_args()
 
 def process_args():

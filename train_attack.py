@@ -15,8 +15,6 @@ from src.data.load_data import load_data
 from src.models import load_model
 from src.models.llama import LlamaBase
 from src.tools.tools import get_default_device, set_seeds
-from src.tools.saving import next_dir
-from src.attacker.greedy import GreedyComparativeAttacker
 from src.attacker.selector import select_train_attacker
 from src.tools.saving import base_path_creator, attack_base_path_creator_train
 
@@ -109,7 +107,7 @@ if __name__ == "__main__":
 
 
     
-    elif 'greedy' in attack_args.attack_method:
+    elif attack_args.attack_method == 'greedy':
 
         '''learn the next universal adversarial token to append greedily'''
 
@@ -143,7 +141,7 @@ if __name__ == "__main__":
     
 
 
-    elif 'gcg' in attack_args.attack_method:
+    elif attack_args.attack_method == 'gcg':
 
         # Load the model, tokenizer
         model = load_model(model_name=core_args.model_name, device=device)

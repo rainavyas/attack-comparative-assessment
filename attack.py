@@ -61,20 +61,23 @@ if __name__ == "__main__":
     # evaluate separately for seen and unseen summary generation systems
     fpaths = get_fpaths(core_args, attack_base_path)
 
-    # 1) No attack
-    fpath = fpaths[0]
-    if os.path.isfile(fpath) and not attack_args.force_run:
-        with open(fpath, 'rb') as f:
-            result = np.load(f)
-    else:
-        result = attacker.evaluate_uni_attack(test_data)
-        with open(fpath, 'wb') as f:
-            np.save(f, result)
-    print('No attack')
-    print(result)
-    print()
 
-    # 2) Attack i 
+    # 1) No attack
+    if not attack_args.not_none:
+        print('No attack')
+        fpath = fpaths[0]
+        if os.path.isfile(fpath) and not attack_args.force_run:
+            with open(fpath, 'rb') as f:
+                result = np.load(f)
+        else:
+            result = attacker.evaluate_uni_attack(test_data)
+            with open(fpath, 'wb') as f:
+                np.save(f, result)
+        print(result)
+        print()
+
+    # 2) Attack i
+    print('Attack i')
     fpath = fpaths[1]
     if os.path.isfile(fpath) and not attack_args.force_run:
         with open(fpath, 'rb') as f:
@@ -83,7 +86,6 @@ if __name__ == "__main__":
         result = attacker.evaluate_uni_attack(test_data, attacker.adv_phrase, attack_type='A')
         with open(fpath, 'wb') as f:
             np.save(f, result)
-    print('Attack i')
     print(result)
     print()
 

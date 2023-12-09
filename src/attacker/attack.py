@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
-import json
-import os
 from tqdm import tqdm
 import torch
 import numpy as np
 import torch.nn.functional as F
-import random
+
 
 from src.data.templates import load_prompt_template
 
@@ -19,7 +17,7 @@ class BaseAttacker(ABC):
         self.tokenizer = self.model.tokenizer
         self.prompt_template = load_prompt_template()
 
-        self.adv_phrase = self._load_adv_phrase(self.attack_args.attack_phrase)
+        self.adv_phrase = self._load_phrase(self.attack_args.attack_phrase)
     
     @abstractmethod
     def get_adv_phrase(self, **kwargs):
@@ -37,7 +35,10 @@ class BaseAttacker(ABC):
         elif phrase_name == 'bland2':
             return "A young man named Michael was driving home from work when he saw a group of people gathered around."
         elif phrase_name == 'greedy-comparative-flant5base':
-            phrase = "resuggest concatenation relation ending"
+            phrase = "resuggest concatenation relation ending relationally"
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-comparative-flant5xl':
+            phrase = "uncontradictory"
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
@@ -52,7 +53,7 @@ class BaseComparativeAttacker(BaseAttacker):
     Base class for adversarial attacks on comparative assessment system
     '''
     def __init__(self, attack_args, model):
-        BaseAttacker.__init__(attack_args, model)
+        BaseAttacker.__init__(self, attack_args, model)
 
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase

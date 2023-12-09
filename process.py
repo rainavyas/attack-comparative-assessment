@@ -3,6 +3,8 @@ Generic functions to process saved outputs for presenting results
 '''
 
 import numpy as np
+import os
+import sys
 
 from src.tools.args import core_args, attack_args, process_args
 from src.tools.saving import base_path_creator, attack_base_path_creator_eval
@@ -22,6 +24,12 @@ if __name__ == "__main__":
 
     base_path = base_path_creator(core_args)
     attack_base_path = attack_base_path_creator_eval(attack_args, base_path)
+
+    # Save the command run
+    if not os.path.isdir('CMDs'):
+        os.mkdir('CMDs')
+    with open('CMDs/process.cmd', 'a') as f:
+        f.write(' '.join(sys.argv)+'\n')
 
     fpaths = get_fpaths(core_args, attack_base_path)
 
@@ -67,7 +75,7 @@ if __name__ == "__main__":
     if process_args.grid_latex_summ:
         # summary table of latex grid
 
-        def latex_print(arr_none, arr_attack):
+        def latex_print(arr_none=None, arr_attack=None):
 
             out = f'''
                 \\begin{{tabular}}{{lcccc}}
@@ -83,15 +91,19 @@ if __name__ == "__main__":
                 content += f'&{np.mean(arr[8:,8:])*100:.2f}'
                 return content + f'\\\\'
 
-            out += latex_row('None', arr_none)
+            if arr_none is not None:
+                out += latex_row('None', arr_none)
             out += latex_row(f'Attack $i$, $S_i(\\mathbf{{c}}_n)\\oplus\hat{{\\bm{{\\delta}}}}$', arr_attack)
 
             out +=f'\\bottomrule \\end{{tabular}}'
             return out
     
-        fpath = fpaths[0]
-        with open(fpath, 'rb') as f:
-            arr_none = np.load(f)
+        if not attack_args.not_none:
+            fpath = fpaths[0]
+            with open(fpath, 'rb') as f:
+                arr_none = np.load(f)
+        else:
+            arr_none = None
 
         fpath = fpaths[1]
         with open(fpath, 'rb') as f:

@@ -32,7 +32,7 @@
 #SBATCH --ntasks=30
 
 #! Array job
-#SBATCH --array=0-50
+#SBATCH --array=0-49
 
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=NONE
