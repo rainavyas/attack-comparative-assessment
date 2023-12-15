@@ -4,21 +4,18 @@ from tqdm import tqdm
 import numpy as np
 import torch.nn as nn
 import random
+from random import randint
 import json
 import os
 
-from .attack import BaseComparativeAttacker
+from .attack import BaseComparativeAttacker, BaseAbsoluteAttacker
 from src.tools.saving import next_dir
 
-class GreedyComparativeAttacker(BaseComparativeAttacker):
-    def __init__(self, attack_args, model, word_list=None):
-        BaseComparativeAttacker.__init__(self, attack_args, model)
-        self.word_list = word_list
-    
+class BaseGreedyAttacker:
     def next_word_score(self, data, curr_adv_phrase, cache_path, array_job_id=-1):
         '''
             curr_adv_phrase: current universal adversarial phrase
-            Returns the comparative assessment score for each word in word list as next uni adv word
+            Returns the assessment score for each word in word list as next uni adv word
         '''
 
         # check for cache
@@ -37,15 +34,17 @@ class GreedyComparativeAttacker(BaseComparativeAttacker):
 
             return prev, word_2_score
 
-        score_no_attack = self.sample_evaluate_uni_attack_seen(data, curr_adv_phrase, attack_type='A')
+        # sample the summary ids for evaluation for next greedy word
+        summary_ids = random.sample(range(self.attack_args.num_systems_seen),2)
 
+        score_no_attack = self.sample_evaluate_uni_attack_seen(data, curr_adv_phrase, summary_ids=summary_ids)
         word_2_score = {}
         for word in tqdm(self.word_list):
             if curr_adv_phrase == '':
                 adv_phrase = word + '.'
             else:
                 adv_phrase = curr_adv_phrase + ' ' + word + '.'
-            score = self.sample_evaluate_uni_attack_seen(data, adv_phrase, attack_type='A')
+            score = self.sample_evaluate_uni_attack_seen(data, adv_phrase, summary_ids=summary_ids)
             word_2_score[word] = score
         
         # cache
@@ -78,7 +77,7 @@ class GreedyComparativeAttacker(BaseComparativeAttacker):
                 word_2_score = json.load(f)
             return best_from_dict(word_2_score)
         
-        elif os.path.isdir(f'{base_path}/array_job1'):
+        elif os.path.isdir(f'{base_path}/array_job7'):
             combined = {}
             for i in range(200):
                 try:
@@ -91,24 +90,33 @@ class GreedyComparativeAttacker(BaseComparativeAttacker):
             return best_from_dict(combined)
 
         else:
-            raise ValueError("No cached scores")
+            raise ValueError("No cached scores") 
 
-    def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', attack_type=None):
+class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
+    def __init__(self, attack_args, model, word_list=None):
+        BaseComparativeAttacker.__init__(self, attack_args, model)
+        self.word_list = word_list
+    
+    def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):
         '''
             List: [dict]
                 Keys: 'prompt', 'prediction', 'adv_target', 'adv_prompt', 'adv_predicton'
         
             Returns the average probability attacked system i is better than system j
             Randomly samples the pair of summary systems i and j for each sample (context)
+             -> don't sample if summary_ids given
             Only consider the seen summarization systems
         '''
 
         result = 0
-        
         for sample in data:
             context = sample.context
-            summi, summj  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
-            if attack_type == 'A':
+            if summary_ids == None:
+                summi, summj  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
+            else:
+                summi = sample.responses[summary_ids[0]]
+                summj = sample.responses[summary_ids[1]]
+            if adv_phrase != '':
                 summi = summi + ' ' + adv_phrase
 
             with torch.no_grad():
@@ -126,6 +134,35 @@ class GreedyComparativeAttacker(BaseComparativeAttacker):
                     
                 prob_i_better = 0.5*(prob1+prob2)
                 result += prob_i_better
+
+        return result/len(data)
+
+
+class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
+    def __init__(self, attack_args, model, word_list=None):
+        BaseAbsoluteAttacker.__init__(self, attack_args, model)
+        self.word_list = word_list
+    
+    def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):
+        '''
+            Returns the average (across contexts) score of a summary
+            Randomly samples summary system i for each sample (context) if no summary_ids
+            Only consider the seen summarization systems
+        '''
+        result = 0
+        for sample in data:
+            context = sample.context
+            if summary_ids == None:
+                summ  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 1)
+            else:
+                summ = sample.responses[summary_ids[0]]
+            if adv_phrase != '':
+                summ = summ + ' ' + adv_phrase
+                
+            input_text = self.prep_input(context, summ)
+            with torch.no_grad():
+                score = self.model.prompt_classifier_response_score(input_text)
+            result += score
 
         return result/len(data)
 

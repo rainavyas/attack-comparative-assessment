@@ -112,7 +112,7 @@ if __name__ == "__main__":
         '''learn the next universal adversarial token to append greedily'''
 
         # load model
-        model = load_model(model_name=core_args.model_name, device=device)
+        model = load_model(model_name=core_args.model_name, device=device, assessment=core_args.assessment)
 
         # load the vocab
         fpath = 'experiments/words.txt'
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     elif attack_args.attack_method == 'gcg':
 
         # Load the model, tokenizer
-        model = load_model(model_name=core_args.model_name, device=device)
+        model = load_model(model_name=core_args.model_name, device=device, assessment=core_args.assessment)
 
         # universal attack (and cache)
         attacker = select_train_attacker(attack_args, core_args)

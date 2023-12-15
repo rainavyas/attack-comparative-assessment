@@ -53,7 +53,7 @@ if __name__ == "__main__":
         test_data = train_data
 
     # Load the model, tokenizer
-    model = load_model(model_name=core_args.model_name, device=device)
+    model = load_model(model_name=core_args.model_name, device=device, assessment=core_args.assessment)
 
     # load attacker for evaluation
     attacker = select_eval_attacker(attack_args, core_args, model)
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         with open(fpath, 'rb') as f:
             result = np.load(f)
     else:
-        result = attacker.evaluate_uni_attack(test_data, attacker.adv_phrase, attack_type='A')
+        result = attacker.evaluate_uni_attack(test_data, attacker.adv_phrase)
         with open(fpath, 'wb') as f:
             np.save(f, result)
     print(result)

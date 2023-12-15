@@ -112,4 +112,27 @@ if __name__ == "__main__":
         print()
         print(latex_print(arr_none, arr_attack))
 
+    if core_args.assessment == 'absolute':
+        # latex format of all 16 avg (across test) contexts and avg for 16
+
+        def latex_print(arr):
+            content = ''
+            for i in range(len(arr)):
+                content += f'&{arr[i]:.2f}'
+            content += f'&{np.mean(arr):.2f}'
+            print(content)
+
+        if not attack_args.not_none:
+            fpath = fpaths[0]
+            with open(fpath, 'rb') as f:
+                arr_none = np.load(f)
+            latex_print(arr_none)
+
+        fpath = fpaths[1]
+        with open(fpath, 'rb') as f:
+            arr_attack = np.load(f)
+        latex_print(arr_attack)
+
+
+
 

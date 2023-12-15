@@ -5,7 +5,7 @@ import numpy as np
 import torch.nn.functional as F
 
 
-from src.data.templates import load_prompt_template
+from src.data.templates import load_prompt_template, load_prompt_template_absolute
 
 class BaseAttacker(ABC):
     '''
@@ -15,7 +15,6 @@ class BaseAttacker(ABC):
         self.attack_args = attack_args
         self.model = model
         self.tokenizer = self.model.tokenizer
-        self.prompt_template = load_prompt_template()
 
         self.adv_phrase = self._load_phrase(self.attack_args.attack_phrase)
     
@@ -35,10 +34,15 @@ class BaseAttacker(ABC):
         elif phrase_name == 'bland2':
             return "A young man named Michael was driving home from work when he saw a group of people gathered around."
         elif phrase_name == 'greedy-comparative-flant5base':
-            phrase = "resuggest concatenation relation ending relationally"
+            phrase = ''
+            # phrase = "resuggest concatenation relation ending relationally" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-flant5xl':
-            phrase = "uncontradictory"
+            phrase = 'E answer E'
+            # phrase = "uncontradictory summable straightish" # sample-greedy
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-absolute-flant5xl':
+            phrase = 'outstandingly superexcellently outstandingly summable'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
@@ -54,12 +58,13 @@ class BaseComparativeAttacker(BaseAttacker):
     '''
     def __init__(self, attack_args, model):
         BaseAttacker.__init__(self, attack_args, model)
+        self.prompt_template = load_prompt_template()
 
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase
 
 
-    def evaluate_uni_attack(self, data, adv_phrase='', attack_type=None):
+    def evaluate_uni_attack(self, data, adv_phrase=''):
         '''
             List: [dict]
                 Keys: 'prompt', 'prediction', 'adv_target', 'adv_prompt', 'adv_predicton'
@@ -76,7 +81,7 @@ class BaseComparativeAttacker(BaseAttacker):
             context = sample.context
             for i in range(num_systems):
                 summi = sample.responses[i]
-                if attack_type == 'A':
+                if adv_phrase != '':
                     summi = summi + ' ' + adv_phrase
                 for j in range(num_systems):
                     summj = sample.responses[j]
@@ -105,3 +110,44 @@ class BaseComparativeAttacker(BaseAttacker):
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids
+
+
+
+class BaseAbsoluteAttacker(BaseAttacker):
+    '''
+    Base class for adversarial attacks on absolute assessment system
+    '''
+    def __init__(self, attack_args, model):
+        BaseAttacker.__init__(self, attack_args, model)
+        self.prompt_template = load_prompt_template_absolute()
+
+    def get_adv_phrase(self, **kwargs):
+        return self.adv_phrase
+
+
+    def evaluate_uni_attack(self, data, adv_phrase=''):
+        '''
+            Returns a numpy list, with each element being the average (across contexts) summary quality score.
+        '''
+        print('Evaluating')
+
+        num_systems = 16
+        result = np.zeros((num_systems))
+        
+        for sample in tqdm(data):
+            context = sample.context
+            for i in range(num_systems):
+                summ = sample.responses[i]
+                if adv_phrase != '':
+                    summ = summ + ' ' + adv_phrase
+                
+                input_text = self.prep_input(context, summ)
+                with torch.no_grad():
+                    score = self.model.prompt_classifier_response_score(input_text)
+                result[i] += score
+
+        return result/len(data)
+
+
+    def prep_input(self, context, summary):
+        return self.prompt_template.format(context=context, summary=summary)
