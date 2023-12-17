@@ -69,7 +69,9 @@ class GCGComparativeAttacker(BaseGCGAttacker, BaseComparativeAttacker):
         logging = []
         for sample in batch:
             context = sample.context
-            summary_A, summary_B = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
+            # summary_A, summary_B = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
+            summary_A = self.attack_args.seen_systems[0]
+            summary_B = self.attack_args.seen_systems[1]
              
             attacked_summary_A = summary_A + f' {self.special_tkns_txt}'
             attacked_summary_B = summary_B + f' {self.special_tkns_txt}'

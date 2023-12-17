@@ -85,10 +85,16 @@ if __name__ == "__main__":
 
             def latex_row(name, arr):
                 content = name
-                content += f'&{np.mean(arr[:8,:8])*100:.2f}'
-                content += f'&{np.mean(arr[:8,8:])*100:.2f}'
-                content += f'&{np.mean(arr[8:,:8])*100:.2f}'
-                content += f'&{np.mean(arr[8:,8:])*100:.2f}'
+                # content += f'&{np.mean(arr[:8,:8])*100:.2f}'
+                # content += f'&{np.mean(arr[:8,8:])*100:.2f}'
+                # content += f'&{np.mean(arr[8:,:8])*100:.2f}'
+                # content += f'&{np.mean(arr[8:,8:])*100:.2f}'
+                ss = np.asarray(attack_args.seen_systems)
+                content += f'&{np.mean(arr[ss,ss])*100:.2f}'
+                content += f'&{np.mean(arr[ss,~ss])*100:.2f}'
+                content += f'&{np.mean(arr[~ss,ss])*100:.2f}'
+                content += f'&{np.mean(arr[~ss,~ss])*100:.2f}'
+                content += f'&{np.mean(arr)*100:.2f}'
                 return content + f'\\\\'
 
             if arr_none is not None:

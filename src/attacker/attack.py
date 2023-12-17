@@ -38,11 +38,14 @@ class BaseAttacker(ABC):
             # phrase = "resuggest concatenation relation ending relationally" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-flant5xl':
-            phrase = 'E answer E'
+            phrase = 'E answer E grammatically comparative'
             # phrase = "uncontradictory summable straightish" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy2-comparative-flant5xl':
+            phrase = 'comparative'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-flant5xl':
-            phrase = 'outstandingly superexcellently outstandingly summable'
+            phrase = 'outstandingly superexcellently outstandingly summable highmost projournalistic'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')

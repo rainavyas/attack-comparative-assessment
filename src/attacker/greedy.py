@@ -34,8 +34,9 @@ class BaseGreedyAttacker:
 
             return prev, word_2_score
 
-        # sample the summary ids for evaluation for next greedy word
-        summary_ids = random.sample(range(self.attack_args.num_systems_seen),2)
+        # set the summary ids for evaluation for next greedy word
+        # summary_ids = random.sample(range(self.attack_args.num_systems_seen),2)
+        summary_ids = self.attack_args.seen_systems
 
         score_no_attack = self.sample_evaluate_uni_attack_seen(data, curr_adv_phrase, summary_ids=summary_ids)
         word_2_score = {}
@@ -57,27 +58,38 @@ class BaseGreedyAttacker:
         return prev, word_2_score
     
     @staticmethod
-    def next_best_word(base_path):
+    def next_best_word(base_path, pos=1):
         '''
             base_path: directory with scores.txt and prev.txt (or array_job files)
             Give the next best word from output saved files
         '''
 
-        def best_from_dict(word_2_score):
-            word = None
-            score = 0
+        def best_from_dict(word_2_score, pos=1):
+            prev = [None, 0]
+            best = [None, 0]
+
             for k,v in word_2_score.items():
-                if v>score:
-                    word=k
-                    score=v
-            return word, score
+                if v>best[1]:
+                    prev[0] = best[0]
+                    prev[1] = best[1]
+                    best[0]=k
+                    best[1]=v
+                elif v>prev[1]:
+                    prev[0]=k
+                    prev[1]=v
+            if pos==1:
+                return best[0], best[1]
+            elif pos==2:
+                return prev[0], prev[1]
+            else:
+                print("Not supported pos")
 
         if os.path.isfile(f'{base_path}/scores.txt'):
             with open(f'{base_path}/scores.txt', 'r') as f:
                 word_2_score = json.load(f)
-            return best_from_dict(word_2_score)
+            return best_from_dict(word_2_score, pos=pos)
         
-        elif os.path.isdir(f'{base_path}/array_job7'):
+        elif os.path.isdir(f'{base_path}/array_job1'):
             combined = {}
             for i in range(200):
                 try:
@@ -87,7 +99,7 @@ class BaseGreedyAttacker:
                     continue
                 combined = {**combined, **word_2_score}
             
-            return best_from_dict(combined)
+            return best_from_dict(combined, pos=pos)
 
         else:
             raise ValueError("No cached scores") 
@@ -111,11 +123,11 @@ class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
         result = 0
         for sample in data:
             context = sample.context
-            if summary_ids == None:
-                summi, summj  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
-            else:
-                summi = sample.responses[summary_ids[0]]
-                summj = sample.responses[summary_ids[1]]
+            # if summary_ids == None:
+            #     summi, summj  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 2)
+            # else:
+            summi = sample.responses[summary_ids[0]]
+            summj = sample.responses[summary_ids[1]]
             if adv_phrase != '':
                 summi = summi + ' ' + adv_phrase
 
@@ -152,10 +164,10 @@ class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
         result = 0
         for sample in data:
             context = sample.context
-            if summary_ids == None:
-                summ  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 1)
-            else:
-                summ = sample.responses[summary_ids[0]]
+            # if summary_ids == None:
+            #     summ  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 1)
+            # else:
+            summ = sample.responses[summary_ids[0]]
             if adv_phrase != '':
                 summ = summ + ' ' + adv_phrase
                 

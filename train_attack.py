@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
 
     
-    elif attack_args.attack_method == 'greedy':
+    elif attack_args.attack_method == 'greedy' or attack_args.attack_method == 'greedy2':
 
         '''learn the next universal adversarial token to append greedily'''
 
