@@ -15,7 +15,7 @@ MODEL_URLS = {
 }
 
 class ComparativeFlanT5:
-    def __init__(self, model_name, decoder_prefix='Summary', label_words=['A', 'B'], bsz=1, device=None):
+    def __init__(self, model_name, decoder_prefix='Summary', label_words=[' A', ' B'], bsz=1, device=None):
         # load model and tokenizer
         system_url = MODEL_URLS[model_name]
         self.tokenizer = AutoTokenizer.from_pretrained(system_url)
@@ -28,7 +28,7 @@ class ComparativeFlanT5:
       
         # set up prompt-based compatative classifier
         self.decoder_input_ids = self.setup_decoder_ids(decoder_prefix, bsz=bsz)
-        self.label_ids = self.setup_label_words()
+        self.label_ids = self.setup_label_words(label_words)
         
     #== Setup methods =======================================================================================#
     def setup_decoder_ids(self, decoder_prefix, bsz=1):
@@ -47,8 +47,7 @@ class ComparativeFlanT5:
         
         return decoder_input_ids.to(self.device)
     
-    def setup_label_words(self):
-        label_words = [' A', ' B']
+    def setup_label_words(self, label_words):
         label_ids = [int(self.tokenizer(word, add_special_tokens=False).input_ids[0]) for word in label_words]
         return label_ids
     
@@ -57,20 +56,19 @@ class ComparativeFlanT5:
         self.model.to(self.device)
 
     #== Main forward method =================================================================================#
-    def forward(self, decoder_input_ids=None, **kwargs):
+    def forward(self, input_ids, attention_mask=None):
         output = self.model(
-            decoder_input_ids=self.decoder_input_ids,
-            **kwargs
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            decoder_input_ids=self.decoder_input_ids
         )
 
         vocab_logits = output.logits[:,-1]
-        #self.debug_output_logits(input_ids, vocab_logits)
-
         class_logits = vocab_logits[:, tuple(self.label_ids)]
-        #raw_class_probs = F.softmax(vocab_logits, dim=-1)[:, tuple(self.label_ids)]
-        
         preds = torch.argmax(class_logits, dim=-1)
         
+        #print(F.softmax(vocab_logits, dim=-1)[:, tuple(self.label_ids)]) VYAS for debug
+
         return SimpleNamespace(
             logits=class_logits,
             preds=preds
@@ -97,19 +95,18 @@ class ComparativeFlanT5:
 
 
 class AbsoluteFlanT5(ComparativeFlanT5):
-    def __init__(self, system_name:str, scores=[1, 2, 3, 4 , 5], device=None):
+    def __init__(self, model_name, decoder_prefix=None, scores=[1, 2, 3, 4 , 5], bsz=1, device=None):
         self.scores = torch.LongTensor([int(i) for i in scores])
         label_words = [str(i) for i in scores]
+        super().__init__(model_name, decoder_prefix, label_words, bsz, device)
 
-        super().__init__(system_name, label_words, device)
-        self.scores.to(device)
+        self.scores = self.scores.to(device)
 
     def g_eval_score(self, input_ids, attention_mask=None):
         output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
-
-        probs = F.softmax(output.class_logits, dim=-1)
+        probs = F.softmax(output.logits, dim=-1)
+        
         score = torch.sum(probs*self.scores)
-    
         output.score = score
 
         return output

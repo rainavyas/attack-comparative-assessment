@@ -145,7 +145,6 @@ class BaseAbsoluteAttacker(BaseAttacker):
                     summ = summ + ' ' + adv_phrase
                 
                 input_ids = self.prep_input(context, summ)
-                print(input_ids)
                 with torch.no_grad():
                     output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
                     score = output.score
@@ -155,6 +154,9 @@ class BaseAbsoluteAttacker(BaseAttacker):
 
 
     def prep_input(self, context, summary):
+        #temp_prompt_template = '\nAnswer:'
+        #input_text = temp_prompt_template.format(context=context, summary=summary)
+
         input_text = self.prompt_template.format(context=context, summary=summary)
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]

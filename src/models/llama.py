@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 
 MODEL_URLS = {
-    'llama-2-7b':'meta-llama/Llama-2-7b-chat-hf',
+    'llama2-7b':'meta-llama/Llama-2-7b-chat-hf',
 }
 
 class ComparativeLlama:
@@ -26,10 +26,9 @@ class ComparativeLlama:
             self.model = self.model.half()
 
         # set up prompt-based compatative classifier
-        self.label_ids = self.setup_label_words()
+        self.label_ids = self.setup_label_words(label_words)
         
-    def setup_label_words(self):
-        label_words = ['A', 'B']
+    def setup_label_words(self, label_words):
         label_ids = [int(self.tokenizer(word, add_special_tokens=False).input_ids[0]) for word in label_words]
         return label_ids
     
@@ -44,6 +43,9 @@ class ComparativeLlama:
         class_logits = vocab_logits[:, tuple(self.label_ids)]
         preds = torch.argmax(class_logits, dim=-1)
         
+        #self.debug_output_logits(vocab_logits) VYAS for debug
+        #print(F.softmax(vocab_logits, dim=-1)[:, tuple(self.label_ids)]) VYAS for debug
+
         return SimpleNamespace(
             logits=class_logits,
             preds=preds
@@ -57,11 +59,9 @@ class ComparativeLlama:
         return self.model.shared(input_ids)
     
     #== Debug method ========================================================================================#
-    def debug_output_logits(self, input_ids, logits):
+    def debug_output_logits(self, logits):
         # Debug function to see what outputs would be
         indices = logits.topk(k=5).indices[0]
-        print(self.tokenizer.decode(input_ids[0]))
-        print('\n')
         print(self.label_ids)
         print(indices)
         print(self.tokenizer.decode(indices))
@@ -69,19 +69,18 @@ class ComparativeLlama:
         import time; time.sleep(1)
 
 class AbsoluteLlama(ComparativeLlama):
-    def __init__(self, system_name:str, scores=[1, 2, 3, 4 , 5], device=None):
-        self.scores = torch.LongTesnor([int(i) for i in scores])
+    def __init__(self, model_name, scores=[1, 2, 3, 4 , 5], device=None):
+        self.scores = torch.LongTensor([int(i) for i in scores])
         label_words = [str(i) for i in scores]
 
-        super().__init__(system_name, label_words, device)
-        self.scores.to(device)
+        super().__init__(model_name, label_words, device)
+        self.scores = self.scores.to(device)
 
     def g_eval_score(self, input_ids, attention_mask=None):
         output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
-
-        probs = F.softmax(output.class_logits, dim=-1)
+        probs = F.softmax(output.logits, dim=-1)
+        
         score = torch.sum(probs*self.scores)
-    
         output.score = score
 
         return output
