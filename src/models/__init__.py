@@ -7,7 +7,7 @@ def load_model(model_name, device='cpu', assessment='comparative'):
             model = ComparativeFlanT5(model_name, device=device)
         elif assessment == 'absolute':
             model = AbsoluteFlanT5(model_name, device=device)
-    if 'llama' in model_name:
+    elif 'llama' in model_name:
         if assessment == 'comparative':
             model = ComparativeLlama(model_name, device=device)
         elif assessment == 'absolute':
