@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 
 MODEL_URLS = {
-    'llama-2-7b-chat-hf':'meta-llama/Llama-2-7b-chat-hf',
+    'llama-2-7b':'meta-llama/Llama-2-7b-chat-hf',
 }
 
 class ComparativeLlama:
@@ -81,7 +81,7 @@ class AbsoluteLlama(ComparativeLlama):
 
         probs = F.softmax(output.class_logits, dim=-1)
         score = torch.sum(probs*self.scores)
-        
-        output
+    
+        output.score = score
 
         return output

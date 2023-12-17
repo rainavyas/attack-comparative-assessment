@@ -145,6 +145,7 @@ class BaseAbsoluteAttacker(BaseAttacker):
                     summ = summ + ' ' + adv_phrase
                 
                 input_ids = self.prep_input(context, summ)
+                print(input_ids)
                 with torch.no_grad():
                     output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
                     score = output.score
