@@ -13,7 +13,7 @@ import json
 from src.tools.args import core_args, attack_args
 from src.data.load_data import load_data
 from src.models import load_model
-from src.models.llama import LlamaBase
+# from src.models.llama import LlamaBase
 from src.tools.tools import get_default_device, set_seeds
 from src.attacker.selector import select_train_attacker
 from src.tools.saving import base_path_creator, attack_base_path_creator_train
@@ -71,37 +71,37 @@ if __name__ == "__main__":
     
 
 
-    elif attack_args.attack_method == 'bland2':
+    # elif attack_args.attack_method == 'bland2':
 
-        '''Take average (across context) next token probability of summarisation system iteratively'''
+    #     '''Take average (across context) next token probability of summarisation system iteratively'''
 
-        # load data
-        data, _ = load_data(core_args)
-        contexts = [s.context for s in data]
+    #     # load data
+    #     data, _ = load_data(core_args)
+    #     contexts = [s.context for s in data]
 
-        # load summarization model
-        summ_model = LlamaBase('llama-2-7b-chat-hf', device)
+    #     # load summarization model
+    #     summ_model = LlamaBase('llama-2-7b-chat-hf', device)
 
-        bland_summ = ''
-        sf = nn.Softmax(dim=0)
-        # get each average predicted token iteratively
-        for i in tqdm(range(attack_args.num_adv_tkns)):
-            total_prob = None
-            for j, context in enumerate(contexts):
-                # uisng Llama-2-chat prompt template
-                prompt = f'[INST] Summarize the following text.\n{context} [/INST] {bland_summ}'
-                ids = summ_model.tokenizer(prompt, return_tensors='pt')['input_ids'][0].to(device)
-                with torch.no_grad():
-                    next_tkn_logits = summ_model.forward(input_ids = ids.unsqueeze(dim=0))['logits'][0,-1,:].detach().cpu()
-                    probs = sf(next_tkn_logits)
+    #     bland_summ = ''
+    #     sf = nn.Softmax(dim=0)
+    #     # get each average predicted token iteratively
+    #     for i in tqdm(range(attack_args.num_adv_tkns)):
+    #         total_prob = None
+    #         for j, context in enumerate(contexts):
+    #             # uisng Llama-2-chat prompt template
+    #             prompt = f'[INST] Summarize the following text.\n{context} [/INST] {bland_summ}'
+    #             ids = summ_model.tokenizer(prompt, return_tensors='pt')['input_ids'][0].to(device)
+    #             with torch.no_grad():
+    #                 next_tkn_logits = summ_model.forward(input_ids = ids.unsqueeze(dim=0))['logits'][0,-1,:].detach().cpu()
+    #                 probs = sf(next_tkn_logits)
 
-                    if j==0:
-                        total_prob = probs
-                    else:
-                        total_prob += probs
-            next_tkn_id = torch.argmax(total_prob, dim=0)
-            bland_summ += f' {summ_model.tokenizer.decode(next_tkn_id)}'
-            print(bland_summ)
+    #                 if j==0:
+    #                     total_prob = probs
+    #                 else:
+    #                     total_prob += probs
+    #         next_tkn_id = torch.argmax(total_prob, dim=0)
+    #         bland_summ += f' {summ_model.tokenizer.decode(next_tkn_id)}'
+    #         print(bland_summ)
 
 
 
