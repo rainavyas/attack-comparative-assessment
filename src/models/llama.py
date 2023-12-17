@@ -29,7 +29,7 @@ class ComparativeLlama:
         self.label_ids = self.setup_label_words(label_words)
         
     def setup_label_words(self, label_words):
-        label_ids = [int(self.tokenizer(word, add_special_tokens=False).input_ids[0]) for word in label_words]
+        label_ids = [int(self.tokenizer(word, add_special_tokens=False).input_ids[-1]) for word in label_words]
         return label_ids
     
     def to(self, device):
@@ -43,8 +43,8 @@ class ComparativeLlama:
         class_logits = vocab_logits[:, tuple(self.label_ids)]
         preds = torch.argmax(class_logits, dim=-1)
         
-        #self.debug_output_logits(vocab_logits) VYAS for debug
-        #print(F.softmax(vocab_logits, dim=-1)[:, tuple(self.label_ids)]) VYAS for debug
+        # self.debug_output_logits(vocab_logits) #VYAS for debug
+        # print(F.softmax(vocab_logits, dim=-1)[:, tuple(self.label_ids)]) #VYAS for debug
 
         return SimpleNamespace(
             logits=class_logits,
