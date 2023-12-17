@@ -144,13 +144,17 @@ class BaseAbsoluteAttacker(BaseAttacker):
                 if adv_phrase != '':
                     summ = summ + ' ' + adv_phrase
                 
-                input_text = self.prep_input(context, summ)
+                input_ids = self.prep_input(context, summ)
                 with torch.no_grad():
-                    score = self.model.prompt_classifier_response_score(input_text)
+                    output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                    score = output.score
                 result[i] += score
 
         return result/len(data)
 
 
     def prep_input(self, context, summary):
-        return self.prompt_template.format(context=context, summary=summary)
+        input_text = self.prompt_template.format(context=context, summary=summary)
+        tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
+        input_ids = tok_input['input_ids'][0]
+        return input_ids

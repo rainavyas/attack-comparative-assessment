@@ -38,7 +38,7 @@ class ComparativeLlama:
         self.model.to(self.device)
 
     #== Main forward method =================================================================================#
-    def forward(self, input_ids, attention_mask):
+    def forward(self, input_ids, attention_mask=None):
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
         vocab_logits = output.logits[:,-1]
         class_logits = vocab_logits[:, tuple(self.label_ids)]
@@ -68,7 +68,7 @@ class ComparativeLlama:
         print('\n\n')
         import time; time.sleep(1)
 
-class GevalLlama(ComparativeLlama):
+class AbsoluteLlama(ComparativeLlama):
     def __init__(self, system_name:str, scores=[1, 2, 3, 4 , 5], device=None):
         self.scores = torch.LongTesnor([int(i) for i in scores])
         label_words = [str(i) for i in scores]
@@ -76,7 +76,7 @@ class GevalLlama(ComparativeLlama):
         super().__init__(system_name, label_words, device)
         self.scores.to(device)
 
-    def g_eval_score(self, input_ids, attention_mask):
+    def g_eval_score(self, input_ids, attention_mask=None):
         output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
 
         probs = F.softmax(output.class_logits, dim=-1)

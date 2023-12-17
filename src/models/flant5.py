@@ -196,7 +196,7 @@ class AbsoluteFlanT5:
             raw_probs=[float(i) for i in raw_class_probs]
         )
 
-    def prompt_classifier_response_score(self, input_text):
+    def g_eval_score(self, input_text):
         '''
             Returns the expected score
         '''

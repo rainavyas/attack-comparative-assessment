@@ -171,9 +171,10 @@ class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
             if adv_phrase != '':
                 summ = summ + ' ' + adv_phrase
                 
-            input_text = self.prep_input(context, summ)
+            input_ids = self.prep_input(context, summ)
             with torch.no_grad():
-                score = self.model.prompt_classifier_response_score(input_text)
+                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                score = output.score
             result += score
 
         return result/len(data)
