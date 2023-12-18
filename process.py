@@ -118,7 +118,7 @@ if __name__ == "__main__":
         print()
         print(latex_print(arr_none, arr_attack))
 
-    if core_args.assessment == 'absolute':
+    if core_args.assessment == 'absolute' or core_args.assessment == 'absolute-ens':
         # latex format of all 16 avg (across test) contexts and avg for 16
 
         def latex_print(arr):

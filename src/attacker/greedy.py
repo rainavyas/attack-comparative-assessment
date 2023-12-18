@@ -151,8 +151,8 @@ class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
 
 
 class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
-    def __init__(self, attack_args, model, word_list=None):
-        BaseAbsoluteAttacker.__init__(self, attack_args, model)
+    def __init__(self, attack_args, model, word_list=None, template=1):
+        BaseAbsoluteAttacker.__init__(self, attack_args, model, template=template)
         self.word_list = word_list
     
     def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):

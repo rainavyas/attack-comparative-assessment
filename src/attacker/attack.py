@@ -42,10 +42,10 @@ class BaseAttacker(ABC):
             # phrase = "uncontradictory summable straightish" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy2-comparative-flant5xl':
-            phrase = 'comparative'
+            phrase = 'comparative E'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-flant5xl':
-            phrase = 'outstandingly superexcellently outstandingly summable highmost projournalistic'
+            phrase = 'outstandingly superexcellently outstandingly summable highmost projournalistic Epicrates'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
@@ -120,9 +120,9 @@ class BaseAbsoluteAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on absolute assessment system
     '''
-    def __init__(self, attack_args, model):
+    def __init__(self, attack_args, model, template=1):
         BaseAttacker.__init__(self, attack_args, model)
-        self.prompt_template = load_prompt_template_absolute()
+        self.prompt_template = load_prompt_template_absolute(template=template)
 
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase
@@ -158,6 +158,60 @@ class BaseAbsoluteAttacker(BaseAttacker):
         #input_text = temp_prompt_template.format(context=context, summary=summary)
 
         input_text = self.prompt_template.format(context=context, summary=summary)
+        tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
+        input_ids = tok_input['input_ids'][0]
+        return input_ids
+
+
+class BaseAbsoluteEnsAttacker(BaseAttacker):
+    '''
+    Base class for adversarial attacks on absolute assessment system with prompt ensemble
+    '''
+    def __init__(self, attack_args, model):
+        BaseAttacker.__init__(self, attack_args, model)
+        self.prompt_template1, self.prompt_template2 = load_prompt_template_absolute(ens=True)
+
+    def get_adv_phrase(self, **kwargs):
+        return self.adv_phrase
+
+
+    def evaluate_uni_attack(self, data, adv_phrase=''):
+        '''
+            Returns a numpy list, with each element being the average (across contexts) summary quality score.
+            Summary quality score is the average of prompt ensemble
+        '''
+        print('Evaluating')
+
+        num_systems = 16
+        result = np.zeros((num_systems))
+        
+        for sample in tqdm(data):
+            context = sample.context
+            for i in range(num_systems):
+                summ = sample.responses[i]
+                if adv_phrase != '':
+                    summ = summ + ' ' + adv_phrase
+                
+                # prompt template 1
+                input_ids = self.prep_input(context, summ, self.prompt_template1)
+                with torch.no_grad():
+                    output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                    score1 = output.score
+
+                # prompt template 2
+                input_ids = self.prep_input(context, summ, self.prompt_template2)
+                with torch.no_grad():
+                    output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                    score2 = output.score
+                
+                score = 0.5*(score1+score2)
+                result[i] += score
+
+        return result/len(data)
+
+
+    def prep_input(self, context, summary, prompt_template):
+        input_text = prompt_template.format(context=context, summary=summary)
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids
