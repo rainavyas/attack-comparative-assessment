@@ -1,3 +1,5 @@
+import numpy as np
+
 from datasets import load_dataset
 from types import SimpleNamespace
 from typing import List
@@ -22,7 +24,8 @@ def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
                 'coherency':row['coherence'],
                 'fluency':row['fluency'],
                 'consistency':row['consistency'],
-                'relevance':row['relevance']
+                'relevance':row['relevance'],
+                'overall':np.sum([row['coherence'], row['fluency'], row['consistency'],row['relevance']], axis=0)
             }
         )
         output.append(ex)

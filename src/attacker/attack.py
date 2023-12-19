@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 import torch
+import scipy
 import numpy as np
 import torch.nn.functional as F
 
@@ -53,8 +54,6 @@ class BaseAttacker(ABC):
 
 
 
-
-
 class BaseComparativeAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on comparative assessment system
@@ -66,7 +65,51 @@ class BaseComparativeAttacker(BaseAttacker):
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase
 
+    def evaluate(self, data):
+        num_systems = 16
 
+        # get all comparisons
+        all_comparisons = []
+        for sample in tqdm(data):
+            context = sample.context
+            context_comparisons = np.zeros((num_systems, num_systems))
+            for i in range(num_systems):
+                summi = sample.responses[i]
+                for j in range(num_systems):
+                    summj = sample.responses[j]
+
+                    with torch.no_grad():
+                        # attacked summ in position A
+                        input_ids = self.prep_input(context, summi, summj)
+                        output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                        logits = output.logits.squeeze().cpu()
+                        prob1 = F.softmax(logits, dim=0)[0].item()
+
+                        # attacked summ in position B
+                        input_ids = self.prep_input(context, summj, summi)
+                        output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                        logits = output.logits.squeeze().cpu()
+                        prob2= F.softmax(logits, dim=0)[1].item()
+                    
+                    prob_i_better = 0.5*(prob1+prob2)
+                    context_comparisons[i,j] = prob_i_better
+                    context_comparisons[j,i] = 1-prob_i_better
+            all_comparisons.append(context_comparisons)
+
+        #convert comparisons to scores
+        all_comparisons = np.array(all_comparisons)
+        wins = (all_comparisons>0.5).sum(axis=-1) 
+
+        spearmans = []
+        for pred, ctx in zip(wins, data):
+            ref_scores = ctx.scores['overall'] 
+            s = scipy.stats.pearsonr(pred, ref_scores)[0]  
+            if not np.isnan(s):
+                spearmans.append(s)
+
+        return np.mean(spearmans)
+
+        
     def evaluate_uni_attack(self, data, adv_phrase=''):
         '''
             List: [dict]
@@ -127,7 +170,34 @@ class BaseAbsoluteAttacker(BaseAttacker):
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase
 
+    def evaluate(self, data):
+        num_systems = 16
+        scores = []
 
+        # get scores for each context
+        for sample in tqdm(data):
+            context = sample.context
+            context_scores = []
+            for i in range(num_systems):
+                summ = sample.responses[i]
+                
+                input_ids = self.prep_input(context, summ)
+                with torch.no_grad():
+                    output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                    score = output.score
+                context_scores.append(score.cpu().item())
+            scores.append(context_scores)
+
+        # calculate spearman correlations for all systems
+        spearmans = []
+        for pred, ctx in zip(scores, data):
+            ref_scores = ctx.scores['overall'] 
+            s = scipy.stats.pearsonr(pred, ref_scores)[0]  
+            if not np.isnan(s):
+                spearmans.append(s)
+
+        return np.mean(spearmans)
+    
     def evaluate_uni_attack(self, data, adv_phrase=''):
         '''
             Returns a numpy list, with each element being the average (across contexts) summary quality score.
