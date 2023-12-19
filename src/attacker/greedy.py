@@ -8,7 +8,7 @@ from random import randint
 import json
 import os
 
-from .attack import BaseComparativeAttacker, BaseAbsoluteAttacker
+from .attack import BaseComparativeAttacker, BaseAbsoluteAttacker, BaseAbsoluteEnsAttacker
 from src.tools.saving import next_dir
 
 class BaseGreedyAttacker:
@@ -175,6 +175,47 @@ class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
             with torch.no_grad():
                 output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
                 score = output.score
+            result += score
+
+        return result/len(data)
+
+
+
+
+class GreedyAbsoluteEnsAttacker(BaseAbsoluteEnsAttacker, BaseGreedyAttacker):
+    def __init__(self, attack_args, model, word_list=None):
+        BaseAbsoluteEnsAttacker.__init__(self, attack_args, model)
+        self.word_list = word_list
+    
+    def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):
+        '''
+            Returns the average (across contexts) score of a summary
+            Randomly samples summary system i for each sample (context) if no summary_ids
+            Only consider the seen summarization systems
+        '''
+        result = 0
+        for sample in data:
+            context = sample.context
+            # if summary_ids == None:
+            #     summ  = random.sample(sample.responses[:self.attack_args.num_systems_seen], 1)
+            # else:
+            summ = sample.responses[summary_ids[0]]
+            if adv_phrase != '':
+                summ = summ + ' ' + adv_phrase
+                
+            # prompt template 1
+            input_ids = self.prep_input(context, summ, self.prompt_template1)
+            with torch.no_grad():
+                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                score1 = output.score
+
+            # prompt template 2
+            input_ids = self.prep_input(context, summ, self.prompt_template2)
+            with torch.no_grad():
+                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                score2 = output.score
+            
+            score = 0.5*(score1+score2)
             result += score
 
         return result/len(data)
