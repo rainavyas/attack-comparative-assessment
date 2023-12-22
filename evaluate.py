@@ -14,7 +14,6 @@ from src.data.load_data import load_data
 from src.models import load_model
 from src.attacker.selector import select_eval_attacker
 from src.tools.saving import base_path_creator
-from attack import get_fpaths
 
 
 if __name__ == "__main__":
@@ -53,5 +52,5 @@ if __name__ == "__main__":
     # load attacker for evaluation
     attacker = select_eval_attacker(attack_args, core_args, model)
 
-    result = attacker.evaluate(test_data)
+    result = attacker.spearman_rank_performance(test_data, cache_dir=base_path, force_run=attack_args.force_run)
     print(result)

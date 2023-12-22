@@ -14,13 +14,6 @@ from src.data.load_data import load_data
 from src.models import load_model
 from src.attacker.selector import select_eval_attacker
 
-def get_fpaths(core_args, attack_base_path):
-    fpaths = ['eval_no_attack', 'eval_attack']
-    if core_args.eval_train:
-        fpaths = [f'{c}_trn' for c in fpaths]
-    fpaths = [f'{attack_base_path}/{p}.npy' for p in fpaths]
-    return fpaths
-
 if __name__ == "__main__":
 
     # get command line arguments
@@ -58,34 +51,18 @@ if __name__ == "__main__":
     # load attacker for evaluation
     attacker = select_eval_attacker(attack_args, core_args, model)
 
-    # evaluate separately for seen and unseen summary generation systems
-    fpaths = get_fpaths(core_args, attack_base_path)
-
+    # evaluate
 
     # 1) No attack
     if not attack_args.not_none:
         print('No attack')
-        fpath = fpaths[0]
-        if os.path.isfile(fpath) and not attack_args.force_run:
-            with open(fpath, 'rb') as f:
-                result = np.load(f)
-        else:
-            result = attacker.evaluate_uni_attack(test_data)
-            with open(fpath, 'wb') as f:
-                np.save(f, result)
+        result = attacker.eval_uni_attack(test_data, adv_phrase='', cache_dir=base_path, force_run=attack_args.force_run)
         print(result)
         print()
 
     # 2) Attack i
     print('Attack i')
-    fpath = fpaths[1]
-    if os.path.isfile(fpath) and not attack_args.force_run:
-        with open(fpath, 'rb') as f:
-            result = np.load(f)
-    else:
-        result = attacker.evaluate_uni_attack(test_data, attacker.adv_phrase)
-        with open(fpath, 'wb') as f:
-            np.save(f, result)
+    result = attacker.eval_uni_attack(test_data, adv_phrase=attacker.adv_phrase, cache_dir=attack_base_path, force_run=attack_args.force_run)
     print(result)
     print()
 

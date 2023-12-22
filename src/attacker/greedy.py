@@ -105,8 +105,8 @@ class BaseGreedyAttacker:
             raise ValueError("No cached scores") 
 
 class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
-    def __init__(self, attack_args, model, word_list=None):
-        BaseComparativeAttacker.__init__(self, attack_args, model)
+    def __init__(self, attack_args, model, symmetric=True, word_list=None):
+        BaseComparativeAttacker.__init__(self, attack_args, model, symmetric=symmetric)
         self.word_list = word_list
     
     def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):
@@ -138,13 +138,17 @@ class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
                 logits = output.logits.squeeze().cpu()
                 prob1 = F.softmax(logits, dim=0)[0].item()
 
-                # attacked summ in position B
-                input_ids = self.prep_input(context, summj, summi)
-                output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
-                logits = output.logits.squeeze().cpu()
-                prob2= F.softmax(logits, dim=0)[1].item()
+                if self.symmetric:
+                    # attacked summ in position B
+                    input_ids = self.prep_input(context, summj, summi)
+                    output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                    logits = output.logits.squeeze().cpu()
+                    prob2= F.softmax(logits, dim=0)[1].item()
                     
-                prob_i_better = 0.5*(prob1+prob2)
+                    prob_i_better = 0.5*(prob1+prob2)
+                else:
+                    prob_i_better = prob1
+
                 result += prob_i_better
 
         return result/len(data)
@@ -173,7 +177,7 @@ class GreedyAbsoluteAttacker(BaseAbsoluteAttacker, BaseGreedyAttacker):
                 
             input_ids = self.prep_input(context, summ)
             with torch.no_grad():
-                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                output = self.model.eval_score(input_ids.unsqueeze(dim=0))
                 score = output.score
             result += score
 
@@ -206,13 +210,13 @@ class GreedyAbsoluteEnsAttacker(BaseAbsoluteEnsAttacker, BaseGreedyAttacker):
             # prompt template 1
             input_ids = self.prep_input(context, summ, self.prompt_template1)
             with torch.no_grad():
-                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                output = self.model.eval_score(input_ids.unsqueeze(dim=0))
                 score1 = output.score
 
             # prompt template 2
             input_ids = self.prep_input(context, summ, self.prompt_template2)
             with torch.no_grad():
-                output = self.model.g_eval_score(input_ids.unsqueeze(dim=0))
+                output = self.model.eval_score(input_ids.unsqueeze(dim=0))
                 score2 = output.score
             
             score = 0.5*(score1+score2)

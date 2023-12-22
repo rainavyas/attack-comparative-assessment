@@ -76,7 +76,7 @@ class AbsoluteLlama(ComparativeLlama):
         super().__init__(model_name, label_words, device)
         self.scores = self.scores.to(device)
 
-    def g_eval_score(self, input_ids, attention_mask=None):
+    def eval_score(self, input_ids, attention_mask=None):
         output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
         probs = F.softmax(output.logits, dim=-1)
         
@@ -84,3 +84,48 @@ class AbsoluteLlama(ComparativeLlama):
         output.score = score
 
         return output
+
+
+class AbsoluteCoTLlama:
+    def __init__(self, model_name, bsz=1, device=None):
+        # load model and tokenizer
+        system_url = MODEL_URLS[model_name]
+        self.tokenizer = AutoTokenizer.from_pretrained(system_url)
+        self.model = AutoModelForCausalLM.from_pretrained(system_url, return_dict=True)
+
+        # set device 
+        if not device:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.to(device)
+
+    def eval_score(self, input_ids, attention_mask=None):
+        with torch.no_grad():
+            output = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                do_sample=False,
+                max_new_tokens=50)
+        
+        # remove input ids (llama returns prompts with output)
+        output = output[:,input_ids.shape[-1]:]
+        out_text = self.tokenizer.decode(output.squeeze(dim=0))
+
+        # extract score -- assume it is in '[[score]]'
+        pos1 = out_text.find("[[")
+        pos2 = out_text.find("]]")
+        if pos1 == -1 or pos2 == -1:
+            score = 5
+        else:
+            score = int(out_text[pos1+2 : pos2].strip())
+
+        # print(out_text, score)
+        return SimpleNamespace(
+            text=out_text,
+            score=torch.tensor(score)
+        )
+
+
+        
+    def to(self, device):
+        self.device = device
+        self.model.to(self.device)

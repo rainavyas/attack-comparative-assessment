@@ -5,12 +5,18 @@ from .gcg import GCGComparativeAttacker
 def select_eval_attacker(attack_args, core_args, model):
     if core_args.assessment == 'comparative':
         return BaseComparativeAttacker(attack_args, model)
+    elif core_args.assessment == 'comparative-asym':
+        return BaseComparativeAttacker(attack_args, model, symmetric=False)
     elif core_args.assessment == 'absolute-ens':
         return BaseAbsoluteEnsAttacker(attack_args, model)
     elif core_args.assessment == 'absolute':
         return BaseAbsoluteAttacker(attack_args, model, template=1)
     elif core_args.assessment == 'absolute2':
         return BaseAbsoluteAttacker(attack_args, model, template=2)
+    elif core_args.assessment == 'absolute3':
+        return BaseAbsoluteAttacker(attack_args, model, template=3)
+    elif core_args.assessment == 'absolute-cot':
+        return BaseAbsoluteAttacker(attack_args, model, template='cot')
 
 def select_train_attacker(attack_args, core_args, model, **kwargs):
     if core_args.assessment == 'comparative':
@@ -18,6 +24,9 @@ def select_train_attacker(attack_args, core_args, model, **kwargs):
             return GreedyComparativeAttacker(attack_args, model, **kwargs)
         elif attack_args.attack_method == 'gcg':
             return GCGComparativeAttacker(attack_args, model)
+    if core_args.assessment == 'comparative-asym':
+        if attack_args.attack_method == 'greedy' or attack_args.attack_method == 'greedy2':
+            return GreedyComparativeAttacker(attack_args, model, symmetric=False, **kwargs)
 
     elif core_args.assessment == 'absolute-ens':
         if attack_args.attack_method == 'greedy' or attack_args.attack_method == 'greedy2':

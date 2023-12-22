@@ -26,7 +26,7 @@ class ComparativeFlanT5:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.to(device)
       
-        # set up prompt-based compatative classifier
+        # set up prompt-based comparative classifier
         self.decoder_input_ids = self.setup_decoder_ids(decoder_prefix, bsz=bsz)
         self.label_ids = self.setup_label_words(label_words)
         
@@ -102,14 +102,59 @@ class AbsoluteFlanT5(ComparativeFlanT5):
 
         self.scores = self.scores.to(device)
 
-    def g_eval_score(self, input_ids, attention_mask=None):
+    def eval_score(self, input_ids, attention_mask=None):
+        # g_eval score
         output = self.forward(input_ids=input_ids, attention_mask=attention_mask)
         probs = F.softmax(output.logits, dim=-1)
         
         score = torch.sum(probs*self.scores)
         output.score = score
 
+        # print(score)
         return output
+
+
+class AbsoluteCoTFlanT5:
+    def __init__(self, model_name, bsz=1, device=None):
+        # load model and tokenizer
+        system_url = MODEL_URLS[model_name]
+        self.tokenizer = AutoTokenizer.from_pretrained(system_url)
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(system_url, return_dict=True)
+
+        # set device 
+        if not device:
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.to(device)
+
+    def eval_score(self, input_ids, attention_mask=None):
+        with torch.no_grad():
+            output = self.model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                do_sample=False,
+                max_new_tokens=50)
+
+        out_text = self.tokenizer.decode(output.squeeze(dim=0))
+
+        # extract score -- assume it is in '[[score]]'
+        pos1 = out_text.find("[[")
+        pos2 = out_text.find("]]")
+        if pos1 == -1 or pos2 == -1:
+            score = 5
+        else:
+            score = int(out_text[pos1+2 : pos2].strip())
+
+        print(out_text, score)
+        return SimpleNamespace(
+            text=out_text,
+            score=torch.tensor(score)
+        )
+
+
+        
+    def to(self, device):
+        self.device = device
+        self.model.to(self.device)
 
 # class AbsoluteFlanT5:
 #     def __init__(self, system_name:str, scores=[1,2,3,4,5], device=None):
