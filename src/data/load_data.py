@@ -21,11 +21,12 @@ def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
             responses=row['machine_summaries'],
             reference=row['human_summaries'][0],
             scores={
-                'coherency':row['coherence'],
+                'coherence':row['coherence'],
                 'fluency':row['fluency'],
                 'consistency':row['consistency'],
                 'relevance':row['relevance'],
-                'overall':np.sum([row['coherence'], row['fluency'], row['consistency'],row['relevance']], axis=0)
+                # 'overall':np.sum([row['coherence'], row['fluency'], row['consistency'],row['relevance']], axis=0)
+                'overall':np.sum([row['coherence'], row['fluency'], row['consistency']], axis=0)
             }
         )
         output.append(ex)

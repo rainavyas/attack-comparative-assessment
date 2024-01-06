@@ -52,5 +52,13 @@ if __name__ == "__main__":
     # load attacker for evaluation
     attacker = select_eval_attacker(attack_args, core_args, model)
 
-    result = attacker.spearman_rank_performance(test_data, cache_dir=base_path, force_run=attack_args.force_run)
+    if 'coherence' in core_args.model_name:
+        metric = 'coherence'
+    elif 'consistency' in core_args.model_name:
+        metric = 'consistency'
+    elif 'fluency' in core_args.model_name:
+        metric = 'fluency'
+    else:
+        metric = 'overall'
+    result = attacker.spearman_rank_performance(test_data, cache_dir=base_path, force_run=attack_args.force_run, metric=metric)
     print(result)

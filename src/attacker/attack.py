@@ -14,10 +14,11 @@ class BaseAttacker(ABC):
     '''
     Base class for adversarial attacks on LLM evaluation systems
     '''
-    def __init__(self, attack_args, model):
+    def __init__(self, attack_args, model, init_tok=True):
         self.attack_args = attack_args
         self.model = model
-        self.tokenizer = self.model.tokenizer
+        if init_tok:
+            self.tokenizer = self.model.tokenizer
 
         self.adv_phrase = self._load_phrase(self.attack_args.attack_phrase)
     
@@ -41,14 +42,20 @@ class BaseAttacker(ABC):
             # phrase = "resuggest concatenation relation ending relationally" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-flant5xl':
-            phrase = 'E answer E grammatically comparative fitting'
+            phrase = 'E answer E grammatically comparative fitting answer E'
             # phrase = "uncontradictory summable straightish" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy2-comparative-flant5xl':
-            phrase = 'comparative E answer'
+            phrase = 'comparative E answer E'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-flant5xl':
             phrase = 'outstandingly superexcellently outstandingly summable highmost projournalistic Epicrates'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-absolute-unieval':
+            phrase = 'whoa boggle righto hah'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-comparative-asym-flant5xl':
+            phrase = 'E'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
@@ -60,7 +67,7 @@ class BaseComparativeAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on comparative assessment system
     '''
-    def __init__(self, attack_args, model, symmetric=True):
+    def __init__(self, attack_args, model, symmetric='symmetric'):
         BaseAttacker.__init__(self, attack_args, model)
         self.prompt_template = load_prompt_template()
         self.symmetric = symmetric
@@ -94,22 +101,35 @@ class BaseComparativeAttacker(BaseAttacker):
                     summj = sample.responses[j]
 
                     with torch.no_grad():
-                        # attacked summ in position A
-                        input_ids = self.prep_input(context, summi, summj)
-                        output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
-                        logits = output.logits.squeeze().cpu()
-                        prob1 = F.softmax(logits, dim=0)[0].item()
+                        if 'asym' in self.symmetric:
+                            if self.symmetric == 'asymA':
+                                # attacked summ in position A
+                                input_ids = self.prep_input(context, summi, summj)
+                                output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                                logits = output.logits.squeeze().cpu()
+                                prob_i_better = F.softmax(logits, dim=0)[0].item()
+                            elif self.symmetric == 'asymB':
+                                # attacked summ in position B
+                                input_ids = self.prep_input(context, summi, summj)
+                                output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                                logits = output.logits.squeeze().cpu()
+                                prob_i_better = F.softmax(logits, dim=0)[1].item()
 
-                        if self.symmetric:
-                            # attacked summ in position B
+                        else:
+                            # symmetric evaluation
+                            #A
+                            input_ids = self.prep_input(context, summi, summj)
+                            output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
+                            logits = output.logits.squeeze().cpu()
+                            prob1 = F.softmax(logits, dim=0)[0].item()
+
+                            #B
                             input_ids = self.prep_input(context, summj, summi)
                             output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
                             logits = output.logits.squeeze().cpu()
                             prob2= F.softmax(logits, dim=0)[1].item()
 
                             prob_i_better = 0.5*(prob1+prob2)
-                        else:
-                            prob_i_better = prob1
                     
                     context_comparisons[i,j] = prob_i_better
             all_comparisons.append(context_comparisons)
@@ -120,7 +140,7 @@ class BaseComparativeAttacker(BaseAttacker):
         return all_comparisons
 
 
-    def spearman_rank_performance(self, data, cache_dir, force_run=False):
+    def spearman_rank_performance(self, data, cache_dir, force_run=False, metric='overall'):
         '''Spearman rank correlation with references'''
         all_comparisons = self._eval_scores(data, adv_phrase='', cache_dir=cache_dir, force_run=force_run)
         #convert comparisons to scores
@@ -128,7 +148,7 @@ class BaseComparativeAttacker(BaseAttacker):
 
         spearmans = []
         for pred, ctx in zip(wins, data):
-            ref_scores = ctx.scores['overall'] 
+            ref_scores = ctx.scores[metric] 
             s = scipy.stats.pearsonr(pred, ref_scores)[0]  
             if not np.isnan(s):
                 spearmans.append(s)
@@ -154,12 +174,26 @@ class BaseAbsoluteAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on absolute assessment system
     '''
-    def __init__(self, attack_args, model, template=1):
-        BaseAttacker.__init__(self, attack_args, model)
-        self.prompt_template = load_prompt_template_absolute(template=template)
+    def __init__(self, attack_args, model, template=1, type_ass='geval'):
+        BaseAttacker.__init__(self, attack_args, model, init_tok=type_ass!='unieval')
+        self.type_ass = type_ass
+        if type_ass == 'geval':
+            self.prompt_template = load_prompt_template_absolute(template=template)
 
     def get_adv_phrase(self, **kwargs):
         return self.adv_phrase
+
+    def _score(self, context, summ):
+        if self.type_ass == 'geval':
+            input_ids = self.prep_input(context, summ)
+            with torch.no_grad():
+                output = self.model.eval_score(input_ids.unsqueeze(dim=0))
+                score = output.score.cpu().item()
+        elif self.type_ass == 'unieval':
+            score = self.model.eval_score(context, summ)
+        else:
+            raise ValueError("Invalid absolute attack type_ass, choose from geval or unieval")
+        return score
 
     def _eval_scores(self, data, adv_phrase='', cache_dir='', force_run=False):
         '''
@@ -184,11 +218,8 @@ class BaseAbsoluteAttacker(BaseAttacker):
                 summ = sample.responses[i]
                 if adv_phrase != '':
                     summ = summ + ' ' + adv_phrase
-                input_ids = self.prep_input(context, summ)
-                with torch.no_grad():
-                    output = self.model.eval_score(input_ids.unsqueeze(dim=0))
-                    score = output.score
-                context_scores.append(score.cpu().item())
+                score = self._score(context, summ)
+                context_scores.append(score)
             all_scores.append(context_scores)
         all_scores = np.array(all_scores)
 
@@ -196,12 +227,12 @@ class BaseAbsoluteAttacker(BaseAttacker):
             np.save(f, all_scores)
         return all_scores
 
-    def spearman_rank_performance(self, data, cache_dir, force_run=False):
+    def spearman_rank_performance(self, data, cache_dir, force_run=False, metric='overall'):
         '''Spearman rank correlation with references'''
         all_scores = self._eval_scores(data, adv_phrase='', cache_dir=cache_dir, force_run=force_run)
         spearmans = []
         for pred, ctx in zip(all_scores, data):
-            ref_scores = ctx.scores['overall']
+            ref_scores = ctx.scores[metric]
             s = scipy.stats.pearsonr(pred, ref_scores)[0]  
             if not np.isnan(s):
                 spearmans.append(s)
@@ -226,62 +257,62 @@ class BaseAbsoluteAttacker(BaseAttacker):
         return input_ids
 
 
-class BaseAbsoluteEnsAttacker(BaseAbsoluteAttacker):
-    '''
-    Base class for adversarial attacks on absolute assessment system with prompt ensemble
-    '''
-    def __init__(self, attack_args, model):
-        BaseAbsoluteAttacker.__init__(self, attack_args, model)
-        self.prompt_template1, self.prompt_template2 = load_prompt_template_absolute(ens=True)
+# class BaseAbsoluteEnsAttacker(BaseAbsoluteAttacker):
+#     '''
+#     Base class for adversarial attacks on absolute assessment system with prompt ensemble
+#     '''
+#     def __init__(self, attack_args, model):
+#         BaseAbsoluteAttacker.__init__(self, attack_args, model)
+#         self.prompt_template1, self.prompt_template2 = load_prompt_template_absolute(ens=True)
 
-    def _eval_scores(self, data, adv_phrase='', cache_dir='', force_run=False):
-        '''
-        Returns C x S numpy array
-            C: number of data samples
-            S: number of systems
-        '''
-        # check for cache
-        fpath = f'{cache_dir}/all_scores.npy'
-        if os.path.isfile(fpath) and not force_run:
-            with open(fpath, 'rb') as f:
-                all_scores = np.load(f)
-            return all_scores
+#     def _eval_scores(self, data, adv_phrase='', cache_dir='', force_run=False):
+#         '''
+#         Returns C x S numpy array
+#             C: number of data samples
+#             S: number of systems
+#         '''
+#         # check for cache
+#         fpath = f'{cache_dir}/all_scores.npy'
+#         if os.path.isfile(fpath) and not force_run:
+#             with open(fpath, 'rb') as f:
+#                 all_scores = np.load(f)
+#             return all_scores
 
-        num_systems = 16
-        all_scores = []
-        # get scores for each context
-        for sample in tqdm(data):
-            context = sample.context
-            context_scores = []
-            for i in range(num_systems):
-                summ = sample.responses[i]
-                if adv_phrase != '':
-                    summ = summ + ' ' + adv_phrase
+#         num_systems = 16
+#         all_scores = []
+#         # get scores for each context
+#         for sample in tqdm(data):
+#             context = sample.context
+#             context_scores = []
+#             for i in range(num_systems):
+#                 summ = sample.responses[i]
+#                 if adv_phrase != '':
+#                     summ = summ + ' ' + adv_phrase
 
-                # prompt template 1
-                input_ids = self.prep_input(context, summ, self.prompt_template1)
-                with torch.no_grad():
-                    output = self.model.eval_score(input_ids.unsqueeze(dim=0))
-                    score1 = output.score
+#                 # prompt template 1
+#                 input_ids = self.prep_input(context, summ, self.prompt_template1)
+#                 with torch.no_grad():
+#                     output = self.model.eval_score(input_ids.unsqueeze(dim=0))
+#                     score1 = output.score
 
-                # prompt template 2
-                input_ids = self.prep_input(context, summ, self.prompt_template2)
-                with torch.no_grad():
-                    output = self.model.eval_score(input_ids.unsqueeze(dim=0))
-                    score2 = output.score
+#                 # prompt template 2
+#                 input_ids = self.prep_input(context, summ, self.prompt_template2)
+#                 with torch.no_grad():
+#                     output = self.model.eval_score(input_ids.unsqueeze(dim=0))
+#                     score2 = output.score
                 
-                score = 0.5*(score1+score2)
-                context_scores.append(score.cpu().item())
-            all_scores.append(context_scores)
-        all_scores = np.array(all_scores)
+#                 score = 0.5*(score1+score2)
+#                 context_scores.append(score.cpu().item())
+#             all_scores.append(context_scores)
+#         all_scores = np.array(all_scores)
 
-        with open(fpath, 'wb') as f:
-            np.save(f, all_scores)
-        return all_scores
+#         with open(fpath, 'wb') as f:
+#             np.save(f, all_scores)
+#         return all_scores
 
 
-    def prep_input(self, context, summary, prompt_template):
-        input_text = prompt_template.format(context=context, summary=summary)
-        tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
-        input_ids = tok_input['input_ids'][0]
-        return input_ids
+#     def prep_input(self, context, summary, prompt_template):
+#         input_text = prompt_template.format(context=context, summary=summary)
+#         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
+#         input_ids = tok_input['input_ids'][0]
+#         return input_ids
