@@ -110,7 +110,7 @@ class BaseComparativeAttacker(BaseAttacker):
                                 prob_i_better = F.softmax(logits, dim=0)[0].item()
                             elif self.symmetric == 'asymB':
                                 # attacked summ in position B
-                                input_ids = self.prep_input(context, summi, summj)
+                                input_ids = self.prep_input(context, summj, summi)
                                 output = self.model.forward(input_ids=input_ids.unsqueeze(dim=0))
                                 logits = output.logits.squeeze().cpu()
                                 prob_i_better = F.softmax(logits, dim=0)[1].item()
