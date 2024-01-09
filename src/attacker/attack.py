@@ -42,7 +42,7 @@ class BaseAttacker(ABC):
             # phrase = "resuggest concatenation relation ending relationally" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-flant5xl':
-            phrase = 'E answer E grammatically comparative fitting answer E'
+            phrase = 'E answer E grammatically comparative fitting answer E E'
             # phrase = "uncontradictory summable straightish" # sample-greedy
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy2-comparative-flant5xl':
@@ -54,8 +54,20 @@ class BaseAttacker(ABC):
         elif phrase_name == 'greedy-absolute-unieval':
             phrase = 'whoa boggle righto hah'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-absolute-unieval-coh':
+            phrase = 'read inustion'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-absolute-unieval-con':
+            phrase = 'compendent'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-absolute-unieval-flu':
+            phrase = 'Feuillants cavort'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-asym-flant5xl':
             phrase = 'E'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'greedy-comparative-asymB-flant5xl':
+            phrase = 'grammatically'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
