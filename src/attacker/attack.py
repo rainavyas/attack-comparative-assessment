@@ -55,19 +55,19 @@ class BaseAttacker(ABC):
             phrase = 'whoa boggle righto hah'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-unieval-coh':
-            phrase = 'read inustion'
+            phrase = 'read inustion newsprint introductorily prelease'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-unieval-con':
-            phrase = 'compendent'
+            phrase = 'compendent at id id'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-unieval-flu':
-            phrase = 'Feuillants cavort'
+            phrase = 'Feuillants cavort extortionately ashore'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-asym-flant5xl':
-            phrase = 'E'
+            phrase = 'E applicableness E'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-asymB-flant5xl':
-            phrase = 'grammatically'
+            phrase = 'grammatically sound emendable correctly'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
