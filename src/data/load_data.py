@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 from datasets import load_dataset
 from types import SimpleNamespace
@@ -32,3 +33,31 @@ def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
         output.append(ex)
     train_samples = int(train_frac*len(output))
     return output[:train_samples],  output[train_samples:]
+
+def load_topicalchat(train_frac=0.1) -> List[SimpleNamespace]:
+        data_path = "/rds/project/rds-8YSp2LXTlkY/data/nlg_evaluation/topicalchat_usr/tc_usr_data.json"
+        with open(data_path, "r") as f:
+            x = f.read()
+        data = json.loads(x)
+
+        output = []
+        for k, row in enumerate(data):
+            responses = row['responses']
+            ex = SimpleNamespace(
+                context_id=str(k),
+                context=row['context'],
+                responses=[x['response'] for x in responses],
+                fact=row['fact'],
+                scores={
+                    'coherency': [np.mean(x['Understandable']) for x in responses],
+                    'naturalness': [np.mean(x['Natural']) for x in responses],
+                    'continuity': [np.mean(x['Maintains Context']) for x in responses],
+                    'engagingness': [np.mean(x['Engaging']) for x in responses],
+                    'groundedness': [np.mean(x['Uses Knowledge']) for x in responses],
+                    'overall': [np.mean(x['Overall']) for x in responses],
+                }
+            )
+            output.append(ex)
+
+        train_samples = int(train_frac*len(output))
+        return output[:train_samples],  output[train_samples:]
