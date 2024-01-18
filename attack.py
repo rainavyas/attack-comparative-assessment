@@ -46,7 +46,7 @@ if __name__ == "__main__":
         test_data = train_data
 
     # Load the model, tokenizer
-    model = load_model(model_name=core_args.model_name, device=device, assessment=core_args.assessment)
+    model = load_model(core_args, device=device, assessment=core_args.assessment)
 
     # load attacker for evaluation
     attacker = select_eval_attacker(attack_args, core_args, model)

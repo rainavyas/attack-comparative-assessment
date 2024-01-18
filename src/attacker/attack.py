@@ -14,9 +14,10 @@ class BaseAttacker(ABC):
     '''
     Base class for adversarial attacks on LLM evaluation systems
     '''
-    def __init__(self, attack_args, model, init_tok=True):
+    def __init__(self, attack_args, model, init_tok=True, num_systems=16):
         self.attack_args = attack_args
         self.model = model
+        self.num_systems = num_systems
         if init_tok:
             self.tokenizer = self.model.tokenizer
 
@@ -79,9 +80,9 @@ class BaseComparativeAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on comparative assessment system
     '''
-    def __init__(self, attack_args, model, symmetric='symmetric'):
-        BaseAttacker.__init__(self, attack_args, model)
-        self.prompt_template = load_prompt_template()
+    def __init__(self, attack_args, model, symmetric='symmetric', template=1, num_systems=16):
+        BaseAttacker.__init__(self, attack_args, model, num_systems=num_systems)
+        self.prompt_template = load_prompt_template(template=template)
         self.symmetric = symmetric
 
     def get_adv_phrase(self, **kwargs):
@@ -100,7 +101,7 @@ class BaseComparativeAttacker(BaseAttacker):
                 all_comparisons = np.load(f)
             return all_comparisons
 
-        num_systems = 16
+        num_systems = self.num_systems
         all_comparisons = []
         for sample in tqdm(data):
             context = sample.context
@@ -142,7 +143,6 @@ class BaseComparativeAttacker(BaseAttacker):
                             prob2= F.softmax(logits, dim=0)[1].item()
 
                             prob_i_better = 0.5*(prob1+prob2)
-                    
                     context_comparisons[i,j] = prob_i_better
             all_comparisons.append(context_comparisons)
 
@@ -174,8 +174,8 @@ class BaseComparativeAttacker(BaseAttacker):
         all_comparisons = self._eval_scores(data, adv_phrase=adv_phrase, cache_dir=cache_dir, force_run=force_run)
         return comparative_evals(all_comparisons, type='prob')
     
-    def prep_input(self, context, summary_A, summary_B):
-        input_text = self.prompt_template.format(context=context, summary_A=summary_A, summary_B=summary_B)
+    def prep_input(self, context, A, B):
+        input_text = self.prompt_template.format(context=context, A=A, B=B)
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids
@@ -186,8 +186,8 @@ class BaseAbsoluteAttacker(BaseAttacker):
     '''
     Base class for adversarial attacks on absolute assessment system
     '''
-    def __init__(self, attack_args, model, template=1, type_ass='geval'):
-        BaseAttacker.__init__(self, attack_args, model, init_tok=type_ass!='unieval')
+    def __init__(self, attack_args, model, template=1, type_ass='geval', num_systems=16):
+        BaseAttacker.__init__(self, attack_args, model, init_tok=type_ass!='unieval', num_systems=num_systems)
         self.type_ass = type_ass
         if type_ass == 'geval':
             self.prompt_template = load_prompt_template_absolute(template=template)
@@ -220,7 +220,7 @@ class BaseAbsoluteAttacker(BaseAttacker):
                 all_scores = np.load(f)
             return all_scores
 
-        num_systems = 16
+        num_systems = self.num_systems
         all_scores = []
         # get scores for each context
         for sample in tqdm(data):
@@ -259,11 +259,11 @@ class BaseAbsoluteAttacker(BaseAttacker):
         return absolute_evals(all_comparisons, type='score')
 
 
-    def prep_input(self, context, summary):
+    def prep_input(self, context, response):
         #temp_prompt_template = '\nAnswer:'
         #input_text = temp_prompt_template.format(context=context, summary=summary)
 
-        input_text = self.prompt_template.format(context=context, summary=summary)
+        input_text = self.prompt_template.format(context=context, response=response)
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids

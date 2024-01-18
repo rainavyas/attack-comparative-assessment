@@ -31,6 +31,11 @@ if __name__ == "__main__":
     with open('CMDs/process.cmd', 'a') as f:
         f.write(' '.join(sys.argv)+'\n')
 
+    if core_args.data_name == 'summeval':
+        num_systems=16
+    elif core_args.data_name == 'topicalchat':
+        num_systems=6
+
     if 'comparative' in core_args.assessment:
 
         # no attack
@@ -48,19 +53,20 @@ if __name__ == "__main__":
         
             def latex_print(arr):
                 content = ''
-                for i in range(16):
+                for i in range(num_systems):
                     content += f'&{i+1}'
-                    for j in range(16):
+                    for j in range(num_systems):
                         content += f'&{arr[i][j]*100:.2f}'
                     content += f'\\\\'
                     if i==7:
                         content += f'\\cmidrule{{2-18}}'
 
+                top_row =  ''.join(['&'+str(i) for i in range(1,num_systems+1)])
                 out = f''' 
                             \\begin{{tabular}}{{cc|cccccccc|cccccccc}}
-                            & &\\multicolumn{{16}}{{c}}{{$S_j$}} \\\\
-                                & & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14 & 15 & 16\\\\ \\midrule
-                            \\multirow{{16}}{{*}}{{$S_i$}}
+                            & &\\multicolumn{{num_systems}}{{c}}{{$S_j$}} \\\\
+                                & {top_row}\\\\ \\midrule
+                            \\multirow{{num_systems}}{{*}}{{$S_i$}}
                             {content}
                             \\end{{tabular}}
                         '''

@@ -105,8 +105,8 @@ class BaseGreedyAttacker:
             raise ValueError("No cached scores") 
 
 class GreedyComparativeAttacker(BaseComparativeAttacker, BaseGreedyAttacker):
-    def __init__(self, attack_args, model, symmetric='symmetric', word_list=None):
-        BaseComparativeAttacker.__init__(self, attack_args, model, symmetric=symmetric)
+    def __init__(self, attack_args, model, symmetric='symmetric', word_list=None, template=1):
+        BaseComparativeAttacker.__init__(self, attack_args, model, symmetric=symmetric, template=template)
         self.word_list = word_list
     
     def sample_evaluate_uni_attack_seen(self, data, adv_phrase='', summary_ids=None):

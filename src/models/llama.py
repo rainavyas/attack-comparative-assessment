@@ -10,7 +10,7 @@ MODEL_URLS = {
 }
 
 class ComparativeLlama:
-    def __init__(self, model_name, label_words=['A', 'B'], device=None):
+    def __init__(self, model_name, decoder_prefix='Summary', label_words=['A', 'B'], device=None):
         # load model and tokenizer
         system_url = MODEL_URLS[model_name]
         self.tokenizer = AutoTokenizer.from_pretrained(system_url)

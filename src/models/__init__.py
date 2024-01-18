@@ -2,10 +2,19 @@ from .flant5 import ComparativeFlanT5, AbsoluteFlanT5, AbsoluteCoTFlanT5
 from .llama import ComparativeLlama, AbsoluteLlama, AbsoluteCoTLlama
 from .unieval import AbsoluteUniEval
 
-def load_model(model_name, device='cpu', assessment='comparative'):
-    if 'flant5' in model_name:
+def load_model(args, device='cpu', assessment='comparative'):
+    model_name = args.model_name
+
+    # for comparative assessment need a decoder prefix
+    if args.data_name == 'summeval':
+        decoder_prefix = 'Summary'
+    elif args.data_name == 'topicalchat':
+        decoder_prefix = 'Response'
+
+
+    if 'flant5' in args.model_name:
         if 'comparative' in assessment:
-            model = ComparativeFlanT5(model_name, device=device)
+            model = ComparativeFlanT5(model_name, device=device, decoder_prefix=decoder_prefix)
         elif 'absolute' in assessment:
             if 'cot' in assessment:
                 model = AbsoluteCoTFlanT5(model_name, device=device)
@@ -14,7 +23,7 @@ def load_model(model_name, device='cpu', assessment='comparative'):
 
     elif 'llama' in model_name:
         if 'comparative' in assessment:
-            model = ComparativeLlama(model_name, device=device)
+            model = ComparativeLlama(model_name, device=device, decoder_prefix=decoder_prefix)
         elif 'absolute' in assessment:
             if 'cot' in assessment:
                 model = AbsoluteCoTLlama(model_name, device=device)

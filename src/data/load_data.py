@@ -9,10 +9,11 @@ from typing import List
 def load_data(core_args):
     if core_args.data_name == 'summeval':
         train, test = load_summeval(train_frac=core_args.train_frac)
-    
+    elif core_args.data_name == 'topicalchat':
+        train, test = load_topicalchat(train_frac=core_args.train_frac)
     return train, test
     
-def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
+def load_summeval(train_frac=0.2)->List[SimpleNamespace]:
     output = []
     summ_eval = load_dataset('mteb/summeval')['test']
     for k, row in enumerate(summ_eval):
@@ -34,7 +35,7 @@ def load_summeval(train_frac=0.1)->List[SimpleNamespace]:
     train_samples = int(train_frac*len(output))
     return output[:train_samples],  output[train_samples:]
 
-def load_topicalchat(train_frac=0.1) -> List[SimpleNamespace]:
+def load_topicalchat(train_frac=0.2) -> List[SimpleNamespace]:
         data_path = "/rds/project/rds-8YSp2LXTlkY/data/nlg_evaluation/topicalchat_usr/tc_usr_data.json"
         with open(data_path, "r") as f:
             x = f.read()
@@ -43,18 +44,24 @@ def load_topicalchat(train_frac=0.1) -> List[SimpleNamespace]:
         output = []
         for k, row in enumerate(data):
             responses = row['responses']
+            coh = [np.mean(x['Understandable']) for x in responses]
+            nat = [np.mean(x['Natural']) for x in responses]
+            con = [np.mean(x['Maintains Context']) for x in responses]
+            eng = [np.mean(x['Engaging']) for x in responses]
+            gr = [np.mean(x['Uses Knowledge']) for x in responses]
+
             ex = SimpleNamespace(
                 context_id=str(k),
                 context=row['context'],
                 responses=[x['response'] for x in responses],
                 fact=row['fact'],
                 scores={
-                    'coherency': [np.mean(x['Understandable']) for x in responses],
-                    'naturalness': [np.mean(x['Natural']) for x in responses],
-                    'continuity': [np.mean(x['Maintains Context']) for x in responses],
-                    'engagingness': [np.mean(x['Engaging']) for x in responses],
-                    'groundedness': [np.mean(x['Uses Knowledge']) for x in responses],
-                    'overall': [np.mean(x['Overall']) for x in responses],
+                    'coherence': coh,
+                    'naturalness': nat,
+                    'continuity': con,
+                    'engagingness': eng,
+                    'groundedness': gr,
+                    'overall':np.sum([coh, nat, con, eng, gr], axis=0)
                 }
             )
             output.append(ex)

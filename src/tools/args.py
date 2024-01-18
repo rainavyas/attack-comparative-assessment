@@ -3,7 +3,7 @@ import argparse
 def core_args():
     commandLineParser = argparse.ArgumentParser(allow_abbrev=False)
     commandLineParser.add_argument('--model_name', type=str, default='flant5-base', help='assessment system')
-    commandLineParser.add_argument('--assessment', type=str, choices=['comparative', 'absolute', 'absolute-ens', 'absolute2', 'absolute3', 'absolute-cot', 'comparative-asym', 'comparative-asymB'], default='comparative', help='assessment system')
+    commandLineParser.add_argument('--assessment', type=str, choices=['comparative', 'absolute', 'absolute-ens', 'absolute2', 'absolute3', 'absolute-cot', 'comparative-asym', 'comparative-asymB', 'comparative-coherence', 'absolute-coherence'], default='comparative', help='assessment system')
     commandLineParser.add_argument('--gpu_id', type=int, default=0, help='select specific gpu')
     commandLineParser.add_argument('--data_name', type=str, default='summeval', help='dataset for exps')
     commandLineParser.add_argument('--train_frac', type=float, default=0.2, help='fraction of samples for learning attack')
