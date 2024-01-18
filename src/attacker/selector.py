@@ -9,7 +9,8 @@ COMP_ARGS_MAPPER = {
     ('topicalchat', 'comparative') :       ['symmetric', 100],
     ('topicalchat', 'comparative-asym') :  ['asymA', 100], 
     ('topicalchat', 'comparative-asymB') :  ['asymB', 100],
-    ('topicalchat', 'comparative-coherence') :  ['symmetric', 101]
+    ('topicalchat', 'comparative-coherence') :  ['symmetric', 101],
+    ('topicalchat', 'comparative-naturalness') :  ['symmetric', 102]
 }
 
 ABS_ARGS_MAPPER = {
@@ -18,7 +19,8 @@ ABS_ARGS_MAPPER = {
     ('summeval', 'absolute3') :      3,
     ('summeval', 'absolute-cot') :   'cot',
     ('topicalchat', 'absolute') :    100,
-    ('topicalchat', 'absolute-coherence') :    101
+    ('topicalchat', 'absolute-coherence') :    101,
+    ('topicalchat', 'absolute-naturalness') :  102
 }
 
 def select_eval_attacker(attack_args, core_args, model):
