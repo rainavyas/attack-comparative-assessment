@@ -15,6 +15,15 @@ def load_prompt_template(template=1, adjective='coherent'):
     elif template==102:
         # TopicalChat naturalness
         prompt_template = "{context}\n\nResponse A: {A}\n\nResponse B: {B}\n\nWhich Response is more natural, Response A or Response B?"
+    elif template==103:
+        # TopicalChat continuity
+        prompt_template = "{context}\n\nResponse A: {A}\n\nResponse B: {B}\n\nWhich Response is a better continuation, Response A or Response B?"
+    elif template==104:
+        # TopicalChat engagingness
+        prompt_template = "{context}\n\nResponse A: {A}\n\nResponse B: {B}\n\nWhich Response is more engaging, Response A or Response B?"
+    elif template==105:
+        # TopicalChat groundedness
+        prompt_template = "{context}\n\nResponse A: {A}\n\nResponse B: {B}\n\nWhich Response is more grounded in knowledge, Response A or Response B?"
     return prompt_template
 
 def load_prompt_template_absolute(template=1):
@@ -107,6 +116,57 @@ def load_prompt_template_absolute(template=1):
         prompt_template1 += "Response:\n\n{response}\n\n"
         prompt_template1 += "Evaluation Form (scores ONLY):\n"
         prompt_template1 += "- Naturalness:"
+        return prompt_template1
+
+    elif template == 103:
+        # continuity for topical chat
+        prompt_template1 = "You will be given one response written for a dialogue context.\n"
+        prompt_template1 += "Your task is to rate the response.\n"
+        prompt_template1 += "Please make sure you read and understand these instructions carefully.\n"
+        prompt_template1 += "Please keep this document open while reviewing, and refer to it as needed.\n\n"
+        prompt_template1 += "Evaluation Criteria:\n\nScore (1-5) - the collective quality of the response on its continuity from the dialogue context.'\n"
+        prompt_template1 += "1. Read the dialogue carefully and identify the main topic and key points.\n"
+        prompt_template1 += "2. Read the response and compare it to the dialogue. Check if the response has good continuity from the dialogue.\n"
+        prompt_template1 += "3. Assign a score for continuity on a scale of 1 to 5, where 1 is the lowest and 5 is the highest based on the Evaluation Criteria.\n\n\n"
+        prompt_template1 += "Example:\n\n"
+        prompt_template1 += "Source Text:\n\n{context}\n\n"
+        prompt_template1 += "Response:\n\n{response}\n\n"
+        prompt_template1 += "Evaluation Form (scores ONLY):\n"
+        prompt_template1 += "- Continuity:"
+        return prompt_template1
+
+    elif template == 104:
+        # engagingness for topical chat
+        prompt_template1 = "You will be given one response written for a dialogue context.\n"
+        prompt_template1 += "Your task is to rate the response.\n"
+        prompt_template1 += "Please make sure you read and understand these instructions carefully.\n"
+        prompt_template1 += "Please keep this document open while reviewing, and refer to it as needed.\n\n"
+        prompt_template1 += "Evaluation Criteria:\n\nScore (1-5) - the collective quality of the response on its engagingness.'\n"
+        prompt_template1 += "1. Read the dialogue carefully.\n"
+        prompt_template1 += "2. Read the response. Check if the response is engaging.\n"
+        prompt_template1 += "3. Assign a score for engagingness on a scale of 1 to 5, where 1 is the lowest and 5 is the highest based on the Evaluation Criteria.\n\n\n"
+        prompt_template1 += "Example:\n\n"
+        prompt_template1 += "Source Text:\n\n{context}\n\n"
+        prompt_template1 += "Response:\n\n{response}\n\n"
+        prompt_template1 += "Evaluation Form (scores ONLY):\n"
+        prompt_template1 += "- Engagingness:"
+        return prompt_template1
+
+    elif template == 105:
+        # groundedness for topical chat
+        prompt_template1 = "You will be given one response written for a dialogue context.\n"
+        prompt_template1 += "Your task is to rate the response.\n"
+        prompt_template1 += "Please make sure you read and understand these instructions carefully.\n"
+        prompt_template1 += "Please keep this document open while reviewing, and refer to it as needed.\n\n"
+        prompt_template1 += "Evaluation Criteria:\n\nScore (1-5) - the collective quality of the response on its groundedness in knowledge. Groundedness is where the response is grounded in knowledge.'\n"
+        prompt_template1 += "1. Read the dialogue carefully.\n"
+        prompt_template1 += "2. Read the response. Check if the response is grounded in knowledge.\n"
+        prompt_template1 += "3. Assign a score for groundedness on a scale of 1 to 5, where 1 is the lowest and 5 is the highest based on the Evaluation Criteria.\n\n\n"
+        prompt_template1 += "Example:\n\n"
+        prompt_template1 += "Source Text:\n\n{context}\n\n"
+        prompt_template1 += "Response:\n\n{response}\n\n"
+        prompt_template1 += "Evaluation Form (scores ONLY):\n"
+        prompt_template1 += "- Groundedness:"
         return prompt_template1
 
 

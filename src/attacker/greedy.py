@@ -89,7 +89,7 @@ class BaseGreedyAttacker:
                 word_2_score = json.load(f)
             return best_from_dict(word_2_score, pos=pos)
         
-        elif os.path.isdir(f'{base_path}/array_job0'):
+        elif os.path.isdir(f'{base_path}/array_job2'):
             combined = {}
             for i in range(200):
                 try:

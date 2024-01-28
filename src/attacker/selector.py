@@ -10,7 +10,10 @@ COMP_ARGS_MAPPER = {
     ('topicalchat', 'comparative-asym') :  ['asymA', 100], 
     ('topicalchat', 'comparative-asymB') :  ['asymB', 100],
     ('topicalchat', 'comparative-coherence') :  ['symmetric', 101],
-    ('topicalchat', 'comparative-naturalness') :  ['symmetric', 102]
+    ('topicalchat', 'comparative-naturalness') :  ['symmetric', 102],
+    ('topicalchat', 'comparative-continuity') :  ['symmetric', 103],
+    ('topicalchat', 'comparative-engagingness') :  ['symmetric', 104],
+    ('topicalchat', 'comparative-groundedness') :  ['symmetric', 105]
 }
 
 ABS_ARGS_MAPPER = {
@@ -20,7 +23,10 @@ ABS_ARGS_MAPPER = {
     ('summeval', 'absolute-cot') :   'cot',
     ('topicalchat', 'absolute') :    100,
     ('topicalchat', 'absolute-coherence') :    101,
-    ('topicalchat', 'absolute-naturalness') :  102
+    ('topicalchat', 'absolute-naturalness') :  102,
+    ('topicalchat', 'absolute-continuity') :  103,
+    ('topicalchat', 'absolute-engagingness') :  104,
+    ('topicalchat', 'absolute-groundedness') :  105,
 }
 
 def select_eval_attacker(attack_args, core_args, model):
@@ -38,7 +44,10 @@ def select_eval_attacker(attack_args, core_args, model):
             return BaseAbsoluteAttacker(attack_args, model, type_ass='unieval', num_systems=num_systems)
         else:
             template = ABS_ARGS_MAPPER[(core_args.data_name, core_args.assessment)]
-            return BaseAbsoluteAttacker(attack_args, model, template=template, num_systems=num_systems)
+            if 'gpt' in core_args.model_name:
+                return BaseAbsoluteAttacker(attack_args, model, type_ass='openai', template=template, num_systems=num_systems)
+            else:
+                return BaseAbsoluteAttacker(attack_args, model, template=template, num_systems=num_systems)
 
 
 def select_train_attacker(attack_args, core_args, model, **kwargs):

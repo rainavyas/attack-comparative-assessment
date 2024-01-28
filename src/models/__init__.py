@@ -1,6 +1,7 @@
 from .flant5 import ComparativeFlanT5, AbsoluteFlanT5, AbsoluteCoTFlanT5
 from .llama import ComparativeLlama, AbsoluteLlama, AbsoluteCoTLlama
 from .unieval import AbsoluteUniEval
+from .openai import AbsoluteOpenAIModel
 
 def load_model(args, device='cpu', assessment='comparative'):
     model_name = args.model_name
@@ -39,6 +40,13 @@ def load_model(args, device='cpu', assessment='comparative'):
             if member not in ['coherence', 'consistency', 'fluency']:
                 raise ValueError('Invalid member type for UniEval')
             model = AbsoluteUniEval(member=member)
+
+    elif 'gpt' in model_name:
+        if 'comparative' in assessment:
+            pass
+        elif 'absolute' in assessment:
+            model = AbsoluteOpenAIModel(model_name)
+
     else:
         raise Exception('invalid model name')
     return model

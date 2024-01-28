@@ -70,6 +70,12 @@ class BaseAttacker(ABC):
         elif phrase_name == 'greedy-comparative-asymB-flant5xl':
             phrase = 'grammatically sound emendable correctly'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'topic-greedy-comparative-cont-flant5xl':
+            phrase = 'interester extemporaneous informative answer'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
+        elif phrase_name == 'topic-greedy-absolute-cont-flant5xl':
+            phrase = 'continuous superexcellently conformant uncontradictory'
+            return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         else:
             print('No specific phrase loaded')
             return ''
@@ -187,9 +193,9 @@ class BaseAbsoluteAttacker(BaseAttacker):
     Base class for adversarial attacks on absolute assessment system
     '''
     def __init__(self, attack_args, model, template=1, type_ass='geval', num_systems=16):
-        BaseAttacker.__init__(self, attack_args, model, init_tok=type_ass!='unieval', num_systems=num_systems)
+        BaseAttacker.__init__(self, attack_args, model, init_tok=type_ass=='geval', num_systems=num_systems)
         self.type_ass = type_ass
-        if type_ass == 'geval':
+        if type_ass == 'geval' or type_ass == 'openai':
             self.prompt_template = load_prompt_template_absolute(template=template)
 
     def get_adv_phrase(self, **kwargs):
@@ -201,6 +207,9 @@ class BaseAbsoluteAttacker(BaseAttacker):
             with torch.no_grad():
                 output = self.model.eval_score(input_ids.unsqueeze(dim=0))
                 score = output.score.cpu().item()
+        elif self.type_ass == 'openai':
+            prompt = self.prep_openai_prompt(context, summ)
+            score = self.model.eval_score(prompt)
         elif self.type_ass == 'unieval':
             score = self.model.eval_score(context, summ)
         else:
@@ -252,8 +261,7 @@ class BaseAbsoluteAttacker(BaseAttacker):
 
     def eval_uni_attack(self, data, adv_phrase='', cache_dir='', force_run=False):
         '''        
-            Returns a numpy array with cell i representing the probability
-            system i is better than system j
+            Returns a numpy array with of average absolute scores for each system
         '''
         all_comparisons = self._eval_scores(data, adv_phrase=adv_phrase, cache_dir=cache_dir, force_run=force_run)
         return absolute_evals(all_comparisons, type='score')
@@ -267,6 +275,10 @@ class BaseAbsoluteAttacker(BaseAttacker):
         tok_input = self.tokenizer(input_text, return_tensors='pt').to(self.model.device)
         input_ids = tok_input['input_ids'][0]
         return input_ids
+
+    def prep_openai_prompt(self, context, response):
+        prompt = self.prompt_template.format(context=context, response=response)
+        return prompt
 
 
 # class BaseAbsoluteEnsAttacker(BaseAbsoluteAttacker):

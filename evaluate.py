@@ -58,6 +58,14 @@ if __name__ == "__main__":
         metric = 'consistency'
     elif 'fluency' in core_args.model_name:
         metric = 'fluency'
+    elif 'naturalness' in core_args.assessment:
+        metric='naturalness'
+    elif 'continuity' in core_args.assessment:
+        metric='continuity'
+    elif 'engagingness' in core_args.assessment:
+        metric='engagingness'
+    elif 'groundedness' in core_args.assessment:
+        metric='groundedness'
     else:
         metric = 'overall'
     result = attacker.spearman_rank_performance(test_data, cache_dir=base_path, force_run=attack_args.force_run, metric=metric)
