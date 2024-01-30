@@ -54,9 +54,9 @@ if __name__ == "__main__":
 
     if 'coherence' in core_args.model_name or 'coherence' in core_args.assessment:
         metric = 'coherence'
-    elif 'consistency' in core_args.model_name:
+    elif 'consistency' in core_args.model_name or 'consistency' in core_args.assessment:
         metric = 'consistency'
-    elif 'fluency' in core_args.model_name:
+    elif 'fluency' in core_args.model_name or 'fluency' in core_args.assessment:
         metric = 'fluency'
     elif 'naturalness' in core_args.assessment:
         metric='naturalness'
