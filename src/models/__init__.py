@@ -7,11 +7,18 @@ def load_model(args, device='cpu', assessment='comparative'):
     model_name = args.model_name
 
     # for comparative assessment need a decoder prefix
-    if args.data_name == 'summeval':
-        decoder_prefix = 'Summary'
-    elif args.data_name == 'topicalchat':
-        decoder_prefix = 'Response'
+    if 'llama' in args.model_name or 'mistral' in args.model_name:
+        if args.data_name == 'summeval':
+            decoder_prefix = '\n\nAnswer: Summary'
+        elif args.data_name == 'topicalchat':
+            decoder_prefix = '\n\nAnswer: Response'
 
+    else:
+        if args.data_name == 'summeval':
+            decoder_prefix = 'Summary'
+        elif args.data_name == 'topicalchat':
+            decoder_prefix = 'Response'
+        
 
     if 'flant5' in args.model_name:
         if 'comparative' in assessment:

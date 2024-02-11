@@ -16,28 +16,46 @@ class ComparativeLlama:
         self.tokenizer = AutoTokenizer.from_pretrained(system_url)
         self.model = AutoModelForCausalLM.from_pretrained(system_url, return_dict=True)
         
+        # set up prompt-based compatative classifier
+        self.label_ids = self.setup_label_words(label_words)
+
+        self.decoder_prefix = decoder_prefix
+        decoder_prefix_tokens = self.tokenizer(decoder_prefix, add_special_tokens=False)
+        self.decoder_prefix_ids = torch.LongTensor(decoder_prefix_tokens['input_ids'])
+        self.decoder_prefix_mask = torch.LongTensor(decoder_prefix_tokens['attention_mask'])
+
         # set device 
         if not device:
             device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            
         self.to(device)
       
         if device == 'cuda' and 'llama' in model_name:
             self.model = self.model.half()
 
-        # set up prompt-based compatative classifier
-        self.label_ids = self.setup_label_words(label_words)
-        
     def setup_label_words(self, label_words):
         label_ids = [int(self.tokenizer(word, add_special_tokens=False).input_ids[-1]) for word in label_words]
         return label_ids
-    
+
+    def add_decoder_prefix(self, input_ids, attention_mask):
+        bsz = input_ids.shape[0]
+        input_ids = torch.cat([input_ids, self.decoder_prefix_ids.repeat(bsz, 1)], dim=-1)
+        if attention_mask:
+            assert torch.all(attention_mask[:, -1] == 1)
+            attention_mask = torch.cat([attention_mask, self.decoder_prefix_mask.repeat(bsz, 1)], dim=-1)
+
+        return input_ids, attention_mask
+
     def to(self, device):
         self.device = device
         self.model.to(self.device)
+        self.decoder_prefix_ids = self.decoder_prefix_ids.to(device) 
+        self.decoder_prefix_mask = self.decoder_prefix_mask.to(device)
 
     #== Main forward method =================================================================================#
     def forward(self, input_ids, attention_mask=None):
+        if self.decoder_prefix:
+            input_ids, attention_mask = self.add_decoder_prefix(input_ids, attention_mask)
+
         output = self.model(input_ids=input_ids, attention_mask=attention_mask)
         vocab_logits = output.logits[:,-1]
         class_logits = vocab_logits[:, tuple(self.label_ids)]
