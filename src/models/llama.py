@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 MODEL_URLS = {
     'llama2-7b':'meta-llama/Llama-2-7b-chat-hf',
+    'mistral-7b':'mistralai/Mistral-7B-Instruct-v0.2'
 }
 
 class ComparativeLlama:
