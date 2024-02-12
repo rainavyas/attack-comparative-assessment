@@ -91,7 +91,7 @@ class AbsoluteLlama(ComparativeLlama):
         self.scores = torch.LongTensor([int(i) for i in scores])
         label_words = [str(i) for i in scores]
 
-        super().__init__(model_name, label_words, device)
+        super().__init__(model_name, label_words=label_words, device=device)
         self.scores = self.scores.to(device)
 
     def eval_score(self, input_ids, attention_mask=None):
