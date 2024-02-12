@@ -29,7 +29,7 @@ def load_model(args, device='cpu', assessment='comparative'):
             else:
                 model = AbsoluteFlanT5(model_name, device=device)
 
-    elif 'llama' in model_name:
+    elif 'llama' in model_name or 'mistral' in model_name:
         if 'comparative' in assessment:
             model = ComparativeLlama(model_name, device=device, decoder_prefix=decoder_prefix)
         elif 'absolute' in assessment:
