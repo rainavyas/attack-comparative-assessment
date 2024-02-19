@@ -53,10 +53,10 @@ class BaseAttacker(ABC):
             phrase = 'outstandingly superexcellently outstandingly summable highmost projournalistic Epicrates'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-comparative-cons-flant5xl':
-            phrase = 'uncontradictory Ay'
+            phrase = 'uncontradictory Ay supplementary answer'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
         elif phrase_name == 'greedy-absolute-cons-flant5xl':
-            phrase = 'uncontradictedly'
+            phrase = 'uncontradictedly undisputably congruity impeccable'
             return ' '.join(phrase.split()[:self.attack_args.num_greedy_phrase_words]) + '.'
             
         elif phrase_name == 'greedy-absolute-unieval':
