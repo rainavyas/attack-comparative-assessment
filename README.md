@@ -21,3 +21,8 @@ Large Language Models (LLMs) are powerful zero-shot assessors and are increasing
 ## Evaluate Universal Attack
 
 `python attack.py --model_name flant5-xl --assessment comparative-consistency --data_name summeval --num_greedy_phrase_words 4 --attack_phrase greedy-comparative-cons-flant5xl`
+
+
+# Reference
+
+If you use this work then cite our paper.
