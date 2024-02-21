@@ -1,5 +1,6 @@
 # Inroduction
-This is the official codebase for the research paper _todo_.
+This is the official codebase for the research paper _Is LLM-as-a-Judge Robust? Investigating Universal Adversarial Attacks
+on Zero-shot LLM Assessment_.
 
 ### Abstract:
 
@@ -15,6 +16,9 @@ Large Language Models (LLMs) are powerful zero-shot assessors and are increasing
 `python evaluate.py --model_name llama2-7b --assessment absolute --data_name topicalchat`
 
 ## Train Universal Attack
+
+Learn the next optimal concatenative greedy phrase word to attack the selected model.
+
 
 `python train_attack.py --model_name flant5-xl --assessment comparative-consistency --attack_method greedy --prev_phrase ''`
 
