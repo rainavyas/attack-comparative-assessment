@@ -1,6 +1,6 @@
 # Inroduction
-This is the official codebase for the research paper _Is LLM-as-a-Judge Robust? Investigating Universal Adversarial Attacks
-on Zero-shot LLM Assessment_.
+This is the official codebase for the research paper [Is LLM-as-a-Judge Robust? Investigating Universal Adversarial Attacks
+on Zero-shot LLM Assessment](https://arxiv.org/abs/2402.14016).
 
 ### Abstract:
 
@@ -29,4 +29,15 @@ Learn the next optimal concatenative greedy phrase word to attack the selected m
 
 # Reference
 
-If you use this work then cite our paper.
+If you use this work then please cite our paper.
+
+```bibtex
+@misc{raina2024llmasajudge,
+      title={Is LLM-as-a-Judge Robust? Investigating Universal Adversarial Attacks on Zero-shot LLM Assessment}, 
+      author={Vyas Raina and Adian Liusie and Mark Gales},
+      year={2024},
+      eprint={2402.14016},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
