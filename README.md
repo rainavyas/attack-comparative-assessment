@@ -27,6 +27,10 @@ Learn the next optimal concatenative greedy phrase word to attack the selected m
 `python attack.py --model_name flant5-xl --assessment comparative-consistency --data_name summeval --num_greedy_phrase_words 4 --attack_phrase greedy-comparative-cons-flant5xl`
 
 
+# Data
+
+Note that the TopicalChat data has to be downloaded from [here](http://shikib.com/tc_usr_data.json). Update the data path in `load_topicalchat` in `src/data/load_data.py`
+
 # Reference
 
 If you use this work then please cite our paper.
