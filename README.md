@@ -26,6 +26,10 @@ Learn the next optimal concatenative greedy phrase word to attack the selected m
 
 `python attack.py --model_name flant5-xl --assessment comparative-consistency --data_name summeval --num_greedy_phrase_words 4 --attack_phrase greedy-comparative-cons-flant5xl`
 
+## Process and print Results
+Get the average score or average rank (as defined in the paper).
+
+`python process.py --model_name flant5-xl --assessment comparative-consistency --data_name summeval --num_greedy_phrase_words 4 --attack_phrase greedy-comparative-cons-flant5xl --grid_latex_summ --avg_rank`
 
 # Data
 
