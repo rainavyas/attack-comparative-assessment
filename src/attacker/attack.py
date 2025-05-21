@@ -181,7 +181,7 @@ class BaseComparativeAttacker(BaseAttacker):
         spearmans = []
         for pred, ctx in zip(wins, data):
             ref_scores = ctx.scores[metric] 
-            s = scipy.stats.pearsonr(pred, ref_scores)[0]  
+            s = scipy.stats.spearmanr(pred, ref_scores)[0]  
             if not np.isnan(s):
                 spearmans.append(s)
         return np.mean(spearmans)
